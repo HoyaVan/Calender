@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home</title>
+  <link rel="stylesheet" type="text/css" href="/output.css"/>
+</head>
+
+<body class="min-h-screen bg-gray-50 flex flex-col" data-authenticated="<%= locals.authenticated %>">
+  <header class="bg-white border-b">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+
+      <!-- Left: Site Title -->
+      <h1 class="text-xl font-semibold text-blue-600 hover:text-blue-800 whitespace-nowrap">
+        <a href="/">Calendar App</a>
+      </h1>
+
+      <!-- Center: Search Bar -->
+      <!-- <div class="flex-1 flex justify-center">
+        <form id="searchForm" class="flex items-center gap-2 w-full max-w-md" onsubmit="return submitSearch(event)">
+          <input id="searchInput" type="search" placeholder="Search events…"
+            class="w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 px-3 py-2 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm" />
+          <button type="submit"
+            class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+            Search
+          </button>
+        </form>
+      </div> -->
+
+      <!-- Right: Auth buttons -->
+      <div class="flex items-center gap-3 ml-4">
+        <% if (locals.authenticated) { %>
+          <!-- Upload -->
+          <a href="/upload" title="New Event"
+            class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition ring-2 ring-gray-200">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </a>
+
+          <!-- Logout -->
+          <form action="/logout" method="post">
+            <button type="submit" title="Log Out"
+              class="h-10 w-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition ring-2 ring-gray-200">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 12H9m9 0l-3 3m3-3l-3-3" />
+              </svg>
+            </button>
+          </form>
+          <% } else { %>
+            <a href="/login" class="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition">Log
+              In</a>
+            <a href="/signup" class="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition">Sign
+              Up</a>
+            <% } %>
+      </div>
+    </div>
+  </header>
+</body>
+</html>
