@@ -1,3 +1,20 @@
-<%- include("templates/header") %> 
-    Page not found - 404
-<%- include("templates/footer") %> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="/output.css" />
+    <title>404 - Page Not Found</title>
+</head>
+<body>
+    <%- include("templates/header") %>
+    <main class="min-h-screen flex items-center justify-center">
+        <div class="text-center">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">404</h1>
+            <p class="text-xl text-gray-600 mb-8">Page not found</p>
+            <a href="/" class="text-blue-600 hover:text-blue-800">Return to home</a>
+        </div>
+    </main>
+    <%- include("templates/footer") %>
+</body>
+</html> 

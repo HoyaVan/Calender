@@ -1,16 +1,36 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="/output.css" />
-    
-    <title>Document</title>
-    <% if (locals.scripts) { %> 
-        <% for(var i=0; i<scripts.length; i++) { %>
-            <script src="<%= scripts[i]%>"></script>
-        <% } %> 
-    <% } %> 
-</head>
-<body>
+<!-- Navigation Header -->
+<% if (typeof headerType !== 'undefined' && headerType === 'account') { %>
+<!-- Account Page Header -->
+<header class="bg-white border-b sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <h1 class="text-xl font-semibold text-gray-900"><%= typeof pageTitle !== 'undefined' ? pageTitle : 'Account Settings' %></h1>
+        <% if (typeof backLink !== 'undefined' && backLink) { %>
+        <a href="<%= backLink %>"
+           class="inline-flex items-center gap-2 text-gray-600 hover:text-blue-600 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+            <span class="text-sm font-medium"><%= typeof backText !== 'undefined' ? backText : 'Back' %></span>
+        </a>
+        <% } %>
+    </div>
+</header>
+<% } else { %>
+<!-- Default Navigation Header -->
+<header class="bg-white border-b">
+    <div class="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
+        <h1 class="text-2xl font-semibold">
+            <a href="/" class="text-blue-600 hover:text-blue-800">Calendar Platform</a>
+        </h1>
+        <div class="space-x-3">
+            <% if (typeof showSignup !== 'undefined' && showSignup) { %>
+                <a href="/signup" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">Sign Up</a>
+            <% } %>
+            <% if (typeof showLogin !== 'undefined' && showLogin) { %>
+                <a href="/login" class="px-4 py-2 bg-gray-800 text-white rounded hover:bg-black transition-colors">Log In</a>
+            <% } %>
+        </div>
+    </div>
+</header>
+<% } %>
