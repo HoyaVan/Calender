@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const bcrypt = require("bcrypt");
-const db_users = include('database/utils/users');
+const db_users = include('database/util/users');  // Changed from utils to util
 const validation = include('auth/validation');
 require("dotenv").config();
 
@@ -41,19 +41,22 @@ router.post("/submitSignup", async (req, res) => {
       return res.redirect("/signup");
     }
 
+    // Get the newly created user to get their _id
+    const newUser = await db_users.getUser({ email });
+    
     // Optional: log them in right away
     req.session.user = {
-      user_id: null,
-      username,
-      email,
-      avatar_url: process.env.DEFAULT_AVATAR_URL || null
+      user_id: newUser._id.toString(),  // MongoDB uses _id, not user_id
+      username: newUser.username,
+      email: newUser.email,
+      avatar_url: newUser.avatar_url || process.env.DEFAULT_AVATAR_URL || null
     };
     req.session.cookie.maxAge = expireTime;
 
-
     return res.redirect("/");
   } catch (error) {
-    if (error && error.code === 'ER_DUP_ENTRY') {
+    // MongoDB duplicate key error code is 11000
+    if (error && (error.code === 'ER_DUP_ENTRY' || error.code === 11000)) {
       req.session.error = "Email or username already exists. Please try another.";
       return res.redirect("/signup");
     }

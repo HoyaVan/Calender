@@ -7,7 +7,7 @@ const signupRoutes = include('routes/auth/signup');
 const signoutRoutes = include('routes/auth/signout');
 
 // Import database (using events for now, can be updated later)
-const db_events = include('database/utils/events');
+const db_events = include('database/util/events');
 
 // Expose common locals for all views
 router.use((req, res, next) => {
@@ -81,7 +81,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("*", (req, res) => {
+// Catch-all 404 handler - must be last
+router.use((req, res) => {
   res.status(404).render("404");
 });
 

@@ -5,8 +5,7 @@ const path = require("path");
 dotenv.config();
 
 const sessionMiddleware = require("./auth/session_check.js");
-require("./database/connect_mongo.js");
-const { pool, setupDatabase } = require("./database/connect_mysql.js");
+const { connectToMongo, client } = require("./database/connect_mongoDB.js");
 
 global.base_dir = __dirname;
 global.abs_path = function (p) { return base_dir + p; }
@@ -29,24 +28,56 @@ app.use(express.static(path.join(__dirname, 'public')));
 const router = include('routes/router');
 app.use('/', router);
 
-// Optional: table check
-const checkTables = async () => {
+// Optional: MongoDB collections check
+const checkMongoCollections = async () => {
   try {
-    console.log('\n=== CHECKING TABLES ===');
-    const [tables] = await pool.execute('SHOW TABLES');
-    console.log('Tables found:', tables.length);
-    tables.forEach(t => console.log('-', Object.values(t)[0]));
+    const dbName = process.env.MONGODB_DB_NAME || 'projectcalender';
+    const db = client.db(dbName);
+    const collections = await db.listCollections().toArray();
+    
+    console.log('\n=== MONGODB COLLECTIONS ===');
+    console.log(`Database: ${dbName}`);
+    console.log(`Collections found: ${collections.length}`);
+    collections.forEach(col => console.log('-', col.name));
     console.log('=== END CHECK ===\n');
   } catch (error) {
-    console.error('Error checking tables:', error);
+    console.error('Error checking MongoDB collections:', error);
+  }
+};
+
+// Optional: MongoDB connection check
+const checkMongoConnection = async () => {
+  try {
+    const mongoClient = await connectToMongo();
+    const db = mongoClient.db("admin");
+    await db.command({ ping: 1 });
+    console.log('\n=== MONGODB CONNECTION ===');
+    console.log('MongoDB connection verified successfully!');
+    console.log('Connection pool configured:');
+    console.log(`  - Max pool size: ${client.options.maxPoolSize || 10}`);
+    console.log(`  - Min pool size: ${client.options.minPoolSize || 2}`);
+    console.log('=== END CHECK ===\n');
+  } catch (error) {
+    console.error('MongoDB connection check failed:', error);
   }
 };
 
 // Start after DB setup
 (async () => {
-  await setupDatabase();
-  setTimeout(checkTables, 3000);
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  try {
+    // Initialize MongoDB connection (pool is automatically managed)
+    await connectToMongo();
+    
+    // Check connections
+    await checkMongoConnection();
+    setTimeout(checkMongoCollections, 1000);
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to initialize server:', error);
+    process.exit(1);
+  }
 })();

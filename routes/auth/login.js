@@ -1,12 +1,13 @@
 const router = require("express").Router();
 const bcrypt = require("bcrypt");
-const db_users = include('database/utils/users');
+const db_users = include('database/util/users');
 const validation = include('auth/validation');
 require("dotenv").config();
 
 const expireTime = 1 * 60 * 60 * 1000;
 
 router.get("/login", (req, res) => {
+  console.log("Login route accessed");
   // If already logged in, redirect to home
   if (req.session?.user) {
     return res.redirect('/');
@@ -14,7 +15,14 @@ router.get("/login", (req, res) => {
   
   const error = req.session.error;
   req.session.error = null;
-  res.render("login", { error });
+  
+  try {
+    console.log("Rendering login view");
+    res.render("login", { error });
+  } catch (err) {
+    console.error("Error rendering login page:", err);
+    res.status(500).send("Error loading login page: " + err.message);
+  }
 });
 
 router.post('/submitLogin', async (req, res) => {
@@ -37,15 +45,14 @@ router.post('/submitLogin', async (req, res) => {
       return res.redirect("/login");
     }
 
-    // set session
+    // set session - MongoDB uses _id instead of user_id
     req.session.user = {
-      user_id: user.user_id,
+      user_id: user._id.toString(),  // MongoDB uses _id
       username: user.username,
       email: user.email,
       avatar_url: user.avatar_url || process.env.DEFAULT_AVATAR_URL || null
     };
     req.session.cookie.maxAge = expireTime;
-
 
     // >>> redirect to home page after successful login
     return res.redirect("/");
