@@ -3,7 +3,14 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const uri = process.env.MONGODB_URI 
+const uri = process.env.MONGODB_URI;
+
+// Validate MongoDB URI
+if (!uri) {
+  console.error('ERROR: MONGODB_URI environment variable is not set!');
+  console.error('Please set MONGODB_URI in your environment variables or .env file');
+  throw new Error('MONGODB_URI is required but not provided');
+}
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
