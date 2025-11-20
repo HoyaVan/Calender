@@ -24,31 +24,6 @@ const pool = mysql.createPool(MYSQL_HOST, {
   keepAliveInitialDelay: 0
 });
 
-// Create users table if it doesn't exist
-async function createUsersTableIfNotExists() {
-  try {
-    const connection = await pool.getConnection();
-    
-    // Read SQL query from queries file
-    const sqlFilePath = path.join(__dirname, 'queries', 'create_users_table.sql');
-    const createTableQuery = await fs.readFile(sqlFilePath, 'utf8');
-    
-    // Remove comments and clean up the query
-    const cleanedQuery = createTableQuery
-      .split('\n')
-      .filter(line => !line.trim().startsWith('--') && line.trim() !== '')
-      .join('\n')
-      .trim();
-    
-    await connection.query(cleanedQuery);
-    connection.release();
-    console.log("Users table verified/created successfully!");
-  } catch (error) {
-    console.error("Error creating users table:", error);
-    throw error;
-  }
-}
-
 // Test MySQL connection
 async function connectToMySQL() {
   try {
@@ -56,10 +31,10 @@ async function connectToMySQL() {
     await connection.ping();
     connection.release();
     console.log("Successfully connected to MySQL!");
-    
+
     // Create users table if it doesn't exist
-    await createUsersTableIfNotExists();
-    
+    //await createUsersTableIfNotExists();
+
     return pool;
   } catch (error) {
     console.error("Failed to connect to MySQL:", error);

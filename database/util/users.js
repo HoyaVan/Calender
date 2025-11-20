@@ -1,6 +1,6 @@
 const { pool, isMySQLConnected } = require('../connect_mysql');
 
-const TABLE_NAME = 'users';
+const TABLE_NAME = 'user';
 
 /**
  * Get user by email or username
@@ -15,15 +15,15 @@ async function getUser({ user = null, email = null }) {
       console.error('Cannot get user: MySQL is not connected');
       throw new Error('MySQL connection is not available. Please check your MYSQL_HOST configuration.');
     }
-    
+
     // If no parameters provided, return null
     if (!email && !user) {
       return null;
     }
-    
+
     let query = `SELECT user_id, username, email, password_hash FROM ${TABLE_NAME} WHERE `;
     const params = [];
-    
+
     if (email && user) {
       // If both are provided, check if either exists (for duplicate checking)
       query += `(LOWER(email) = LOWER(?) OR username = ?) LIMIT 1`;
@@ -35,7 +35,7 @@ async function getUser({ user = null, email = null }) {
       query += `username = ? LIMIT 1`;
       params.push(user.trim());
     }
-    
+
     const [rows] = await pool.execute(query, params);
     return rows.length > 0 ? rows[0] : null;
   } catch (error) {
@@ -57,25 +57,25 @@ async function createUser({ email, user: username, hashedPassword }) {
       console.error('Cannot create user: MySQL is not connected');
       throw new Error('MySQL connection is not available. Please check your MYSQL_HOST configuration.');
     }
-    
+
     // Normalize inputs
     const normalizedEmail = email.toLowerCase().trim();
     const normalizedUsername = username.trim();
-    
+
     // Check if email already exists
     const existingEmail = await getUser({ email: normalizedEmail });
     if (existingEmail) {
       console.log(`User creation failed: Email ${normalizedEmail} already exists`);
       return false;
     }
-    
+
     // Check if username already exists
     const existingUsername = await getUser({ user: normalizedUsername });
     if (existingUsername) {
       console.log(`User creation failed: Username ${normalizedUsername} already exists`);
       return false;
     }
-    
+
     // Insert new user
     const query = `INSERT INTO ${TABLE_NAME} (username, email, password_hash) VALUES (?, ?, ?)`;
     const [result] = await pool.execute(query, [
@@ -83,12 +83,12 @@ async function createUser({ email, user: username, hashedPassword }) {
       normalizedEmail,
       hashedPassword
     ]);
-    
+
     if (result.insertId > 0) {
       console.log(`User created successfully: user_id=${result.insertId}, username=${normalizedUsername}, email=${normalizedEmail}`);
       return true;
     }
-    
+
     return false;
   } catch (error) {
     // Handle MySQL duplicate entry error (ER_DUP_ENTRY = 1062)
@@ -130,11 +130,11 @@ async function updateUser(userId, updates) {
     if (fields.length === 0) {
       return false;
     }
-    
+
     const setClause = fields.map(field => `${field} = ?`).join(', ');
     const query = `UPDATE ${TABLE_NAME} SET ${setClause} WHERE user_id = ?`;
     const values = [...fields.map(field => updates[field]), userId];
-    
+
     const [result] = await pool.execute(query, values);
     return result.affectedRows > 0;
   } catch (error) {
