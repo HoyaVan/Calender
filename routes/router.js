@@ -32,6 +32,56 @@ router.use('/', loginRoutes);
 router.use('/', signupRoutes);
 router.use('/', signoutRoutes);
 
+// Test endpoint to verify MySQL connection (remove in production)
+router.get('/test-mysql', async (req, res) => {
+  try {
+    const { pool, isMySQLConnected } = require('../database/connect_mysql');
+    
+    const isConnected = await isMySQLConnected();
+    
+    if (!isConnected) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'MySQL is not connected',
+        connected: false
+      });
+    }
+    
+    // Get database info
+    const connection = await pool.getConnection();
+    const [dbRows] = await connection.query('SELECT DATABASE() as db, VERSION() as version');
+    const dbName = dbRows[0]?.db || 'unknown';
+    const dbVersion = dbRows[0]?.version || 'unknown';
+    
+    // Count users in database
+    const [userCount] = await connection.query('SELECT COUNT(*) as count FROM users');
+    const count = userCount[0]?.count || 0;
+    
+    connection.release();
+    
+    res.json({
+      status: 'success',
+      connected: true,
+      database: {
+        name: dbName,
+        version: dbVersion,
+        usersTable: {
+          exists: true,
+          recordCount: count
+        }
+      },
+      message: 'MySQL connection is working correctly!'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      connected: false,
+      message: 'MySQL connection test failed',
+      error: error.message
+    });
+  }
+});
+
 // Keep /logout routes for backward compatibility (redirects to signout)
 router.get('/logout', (req, res) => {
   res.redirect('/signout');

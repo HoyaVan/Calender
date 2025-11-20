@@ -45,17 +45,25 @@ router.post('/submitLogin', async (req, res) => {
       return res.redirect("/login");
     }
 
-    // set session - MongoDB uses _id instead of user_id
-    req.session.user = {
-      user_id: user._id.toString(),  // MongoDB uses _id
-      username: user.username,
-      email: user.email,
-      avatar_url: user.avatar_url || process.env.DEFAULT_AVATAR_URL || null
-    };
-    req.session.cookie.maxAge = expireTime;
+    // Regenerate session ID to prevent session fixation and create a new session
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Error regenerating session:', err);
+        return res.render("login", { error: "An error occurred. Please try again." });
+      }
 
-    // >>> redirect to home page after successful login
-    return res.redirect("/");
+      // set session - MySQL uses user_id
+      req.session.user = {
+        user_id: user.user_id,  // MySQL uses user_id
+        username: user.username,
+        email: user.email,
+        avatar_url: user.avatar_url || process.env.DEFAULT_AVATAR_URL || null
+      };
+      req.session.cookie.maxAge = expireTime;
+
+      // >>> redirect to home page after successful login
+      return res.redirect("/");
+    });
   } catch (error) {
     console.log("Login error:", error);
     return res.render("login", { error: "An error occurred. Please try again." });

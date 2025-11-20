@@ -28,9 +28,21 @@ router.post("/submitSignup", async (req, res) => {
   }
 
   try {
-    const existingUser = await db_users.getUser({ user: username, email });
-    if (existingUser) {
-      req.session.error = "Email or username already exists. Please try again.";
+    // Normalize inputs for checking
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedUsername = username.trim();
+    
+    // Check if email already exists
+    const existingEmail = await db_users.getUser({ email: normalizedEmail });
+    if (existingEmail) {
+      req.session.error = "This email is already registered. Please use a different email or try logging in.";
+      return res.redirect("/signup");
+    }
+    
+    // Check if username already exists
+    const existingUsername = await db_users.getUser({ user: normalizedUsername });
+    if (existingUsername) {
+      req.session.error = "This username is already taken. Please choose a different username.";
       return res.redirect("/signup");
     }
 
@@ -41,22 +53,31 @@ router.post("/submitSignup", async (req, res) => {
       return res.redirect("/signup");
     }
 
-    // Get the newly created user to get their _id
+    // Get the newly created user to get their user_id
     const newUser = await db_users.getUser({ email });
     
-    // Optional: log them in right away
-    req.session.user = {
-      user_id: newUser._id.toString(),  // MongoDB uses _id, not user_id
-      username: newUser.username,
-      email: newUser.email,
-      avatar_url: newUser.avatar_url || process.env.DEFAULT_AVATAR_URL || null
-    };
-    req.session.cookie.maxAge = expireTime;
+    // Regenerate session ID to create a new session for the new user
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Error regenerating session:', err);
+        req.session.error = "Account created but login failed. Please try logging in.";
+        return res.redirect("/login");
+      }
 
-    return res.redirect("/");
+      // Log them in right away
+      req.session.user = {
+        user_id: newUser.user_id,  // MySQL uses user_id
+        username: newUser.username,
+        email: newUser.email,
+        avatar_url: newUser.avatar_url || process.env.DEFAULT_AVATAR_URL || null
+      };
+      req.session.cookie.maxAge = expireTime;
+
+      return res.redirect("/");
+    });
   } catch (error) {
-    // MongoDB duplicate key error code is 11000
-    if (error && (error.code === 'ER_DUP_ENTRY' || error.code === 11000)) {
+    // MySQL duplicate key error code is ER_DUP_ENTRY (1062)
+    if (error?.code === 'ER_DUP_ENTRY') {
       req.session.error = "Email or username already exists. Please try another.";
       return res.redirect("/signup");
     }

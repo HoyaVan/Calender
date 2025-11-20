@@ -8,9 +8,13 @@ dotenv.config();
 const {
   SESSION_SECRET,
   SESSION_STORE_SECRET,
+  MONGODB_DB_NAME,
 } = process.env;
 
 const oneDayMs = 1000 * 60 * 60 * 24;
+
+// Use MONGODB_DB_NAME if specified, otherwise default to 'projectcalender'
+const sessionDbName = MONGODB_DB_NAME || 'projectcalender';
 
 const sessionMiddleware = session({
   name: "sid",
@@ -19,6 +23,7 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   store: MongoStore.create({
     client: getMongoClient(),
+    dbName: sessionDbName,
     collectionName: "sessions",
     ttl: 60 * 60 * 24,
     touchAfter: 60 * 60 * 12,
