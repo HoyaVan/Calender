@@ -10,56 +10,19 @@
 
 <body class="min-h-full bg-gray-50 <%= locals.authenticated ? 'authenticated' : '' %>"
   data-authenticated="<%= locals.authenticated %>">
-  <header class="bg-white border-b">
-    <div class="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-semibold">
-          Hello, <span class="text-blue-600">
-            <%= displayName %>
-          </span>!
-        </h1>
-        <p class="text-gray-500">Welcome to your profile. Manage your friends and events below.</p>
-      </div>
-
-      <div class="flex items-center space-x-3">
-        <!-- Profile -->
-        <a href="/profile"
-          class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition"
-          title="Profile">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-5 h-5"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-        </a>
-
-        <!-- Home -->
-        <a href="/"
-          class="h-10 w-10 flex items-center justify-center rounded-full bg-gray-800 text-white hover:bg-black transition"
-          title="Home">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-5 h-5"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />
-          </svg>
-        </a>
-
-        <!-- Log Out -->
-        <form action="/logout" method="post" class="inline">
-          <button type="submit"
-            class="h-10 w-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition"
-            title="Log Out">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-              stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M18 12H9m9 0l-3 3m3-3l-3-3" />
-            </svg>
-          </button>
-        </form>
-      </div>
-    </div>
-  </header>
+  <!-- Navigation Header -->
+  <%- include('partials/navigation', { currentPage: 'profile' }) %>
 
   <main class="max-w-5xl mx-auto px-4 py-8">
+    <!-- Profile Greeting -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-semibold">
+        Hello, <span class="text-blue-600">
+          <%= displayName %>
+        </span>!
+      </h1>
+      <p class="text-gray-500">Welcome to your profile. Manage your friends below.</p>
+    </div>
     <!-- Success/Error Messages -->
     <% if (typeof success !== 'undefined' && success) { %>
       <div class="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
@@ -80,14 +43,14 @@
           <input 
             type="text" 
             id="searchInput" 
-            placeholder="Search by username or email..." 
+            placeholder="Write username or email..." 
             class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button 
             type="submit" 
             class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
           >
-            Search
+            Send
           </button>
         </form>
       </div>
@@ -168,32 +131,6 @@
               <p class="font-medium text-gray-900"><%= friend.username %></p>
               <p class="text-sm text-gray-500"><%= friend.email %></p>
             </div>
-          <% } %>
-        </div>
-      <% } %>
-    </section>
-
-    <!-- Events Section (keeping existing events display) -->
-    <section class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
-      <h2 class="text-xl font-semibold text-gray-900 mb-4">My Events</h2>
-      <% const myEvents = (typeof events !== 'undefined' && events && events.length) ? events : []; %>
-      <% if (myEvents.length === 0) { %>
-        <div class="rounded-lg border border-dashed border-gray-300 bg-white p-10 text-center">
-          <p class="text-gray-600">No events yet.</p>
-          <a href="/addEvent" class="inline-block mt-3 text-blue-600 hover:underline">Create your first event</a>
-        </div>
-      <% } else { %>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <% for (const event of myEvents) { %>
-            <article class="bg-gray-50 rounded-lg border border-gray-200 p-4">
-              <h3 class="text-gray-900 font-semibold mb-2"><%= event.event_name || event.title %></h3>
-              <% if (event.event_start) { %>
-                <p class="text-sm text-gray-600">Start: <%= new Date(event.event_start).toLocaleString() %></p>
-              <% } %>
-              <% if (event.event_end) { %>
-                <p class="text-sm text-gray-600">End: <%= new Date(event.event_end).toLocaleString() %></p>
-              <% } %>
-            </article>
           <% } %>
         </div>
       <% } %>

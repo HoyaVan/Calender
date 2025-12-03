@@ -96,6 +96,8 @@
       </div>
     </div>
   </header>
+  <!-- Navigation Header -->
+  <%- include('partials/navigation', { currentPage: 'home' }) %>
 
   <!-- Main Content -->
   <main class="flex-1 max-w-5xl mx-auto px-4 py-8 w-full">
@@ -111,259 +113,29 @@
       </div>
     <% } %>
 
-    <!-- View Toggle Buttons - Always visible in order: Now, Day, Week -->
-    <div class="flex justify-center gap-2 mb-4">
-      <!-- Now Button -->
-      <% if (isToday) { %>
-        <button disabled
-          class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium">
-          Now
-        </button>
-      <% } else { %>
-        <button onclick="goToToday()" 
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-          Now
-        </button>
-      <% } %>
-      
-      <!-- Day Button -->
-      <% if (view === 'day') { %>
-        <button disabled
-          class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium">
-          Day
-        </button>
-      <% } else { %>
-        <button onclick="switchToDayView()" 
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-          Day
-        </button>
-      <% } %>
-      
-      <!-- Week Button -->
-      <% if (view === 'week') { %>
-        <button disabled
-          class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium">
-          Week
-        </button>
-      <% } else { %>
-        <button onclick="switchToWeekView()" 
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-          Week
-        </button>
-      <% } %>
-    </div>
+    <!-- View Toggle Buttons -->
+    <%- include('partials/view-toggle-buttons') %>
 
     <!-- Day View -->
     <% if (view === 'day') { %>
-    <div class="space-y-4">
-      <!-- Day Navigation -->
-      <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-        <div class="flex items-center justify-between gap-4">
-          <!-- Left Arrow -->
-          <button onclick="changeDay(-1)" 
-            class="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-
-          <!-- Date Display -->
-          <div class="flex-1 text-center">
-            <h2 class="text-2xl font-bold text-gray-800" id="dateDisplay">
-              <% 
-                const dateObj = new Date(selectedDate + 'T12:00:00');
-                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                const formattedDate = dateObj.toLocaleDateString('en-US', options);
-              %>
-              <%= formattedDate %>
-            </h2>
-          </div>
-
-          <!-- Right Arrow -->
-          <button onclick="changeDay(1)" 
-            class="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Events List -->
-      <% if (events && events.length > 0) { %>
-        <div class="space-y-3">
-          <% events.forEach(event => { %>
-            <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div class="flex-1">
-                  <h3 class="text-lg font-semibold text-gray-900 mb-2">
-                    <%= event.event_name %>
-                  </h3>
-                  <div class="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-600">
-                    <div class="flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span>
-                        <%= new Date(event.event_start).toLocaleString() %>
-                      </span>
-                    </div>
-                    <span class="hidden sm:inline">•</span>
-                    <div class="flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span>
-                        <%= new Date(event.event_end).toLocaleString() %>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <% if (event.security_level) { %>
-                    <span class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                      <%= event.security_level %>
-                    </span>
-                  <% } %>
-                </div>
-              </div>
-            </div>
-          <% }); %>
-        </div>
-      <% } else { %>
-        <div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <p class="text-gray-500 text-lg">No events for this day</p>
-          <p class="text-gray-400 text-sm mt-2">Create an event by clicking the + button above</p>
-        </div>
-      <% } %>
-    </div>
+      <%- include('partials/day-view') %>
     <% } %>
 
     <!-- Week View -->
     <% if (view === 'week') { %>
-    <div class="space-y-4">
-      <!-- Week Navigation -->
-      <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-        <div class="flex items-center justify-between gap-4">
-          <!-- Left Arrow -->
-          <button onclick="changeWeek(-1)" 
-            class="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+      <%- include('partials/week-view') %>
+    <% } %>
 
-          <!-- Week Display -->
-          <div class="flex-1 text-center">
-            <h2 class="text-2xl font-bold text-gray-800">
-              Week of 
-              <% 
-                const sundayDate = new Date(weekData.sundayDate);
-                const sundayOptions = { month: 'long', day: 'numeric', year: 'numeric' };
-                const sundayFormatted = sundayDate.toLocaleDateString('en-US', sundayOptions);
-              %>
-              <%= sundayFormatted %>
-            </h2>
-          </div>
-
-          <!-- Right Arrow -->
-          <button onclick="changeWeek(1)" 
-            class="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Week Grid - Horizontal Layout -->
-      <div class="w-full">
-        <div class="flex flex-row gap-4">
-          <% weekData.days.forEach((day, index) => { %>
-            <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex-1">
-            <!-- Day Header -->
-            <div class="p-3 border-b border-gray-200 bg-gray-50">
-              <div class="text-sm font-semibold text-gray-600 uppercase">
-                <% 
-                  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                  const dayName = dayNames[day.dateObj.getDay()];
-                %>
-                <%= dayName %>
-              </div>
-              <div class="text-lg font-bold text-gray-900 mt-1">
-                <%= day.dateObj.getDate() %>
-              </div>
-            </div>
-            
-            <!-- Day Events -->
-            <div class="p-2 space-y-2 min-h-[200px]">
-              <% if (day.events && day.events.length > 0) { %>
-                <% day.events.forEach(event => { %>
-                  <div class="bg-blue-50 border border-blue-200 rounded p-2 hover:bg-blue-100 transition-colors">
-                    <div class="text-sm font-semibold text-gray-900 mb-1">
-                      <%= event.event_name %>
-                    </div>
-                    <div class="text-xs text-gray-600">
-                      <%= new Date(event.event_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) %>
-                      <% if (new Date(event.event_start).toDateString() !== new Date(event.event_end).toDateString()) { %>
-                        - <%= new Date(event.event_end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) %>
-                      <% } else { %>
-                        - <%= new Date(event.event_end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) %>
-                      <% } %>
-                    </div>
-                    <% if (event.security_level) { %>
-                      <div class="mt-1">
-                        <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                          <%= event.security_level %>
-                        </span>
-                      </div>
-                    <% } %>
-                  </div>
-                <% }); %>
-              <% } else { %>
-                <div class="text-xs text-gray-400 text-center py-4">No events</div>
-              <% } %>
-            </div>
-          </div>
-          <% }); %>
-        </div>
-      </div>
-    </div>
+    <!-- Month View -->
+    <% if (view === 'month') { %>
+      <%- include('partials/month-view') %>
     <% } %>
 
     <!-- JavaScript for navigation -->
+    <script src="/js/calendar-navigation.js"></script>
     <script>
-      const currentDate = '<%= selectedDate %>';
-      const currentView = '<%= view %>';
-      
-      function changeDay(days) {
-        const date = new Date(currentDate + 'T12:00:00');
-        date.setDate(date.getDate() + days);
-        const newDate = date.toISOString().split('T')[0];
-        window.location.href = `/?date=${newDate}&view=${currentView}`;
-      }
-      
-      function changeWeek(weeks) {
-        const date = new Date(currentDate + 'T12:00:00');
-        date.setDate(date.getDate() + (weeks * 7));
-        const newDate = date.toISOString().split('T')[0];
-        window.location.href = `/?date=${newDate}&view=week`;
-      }
-      
-      function goToToday() {
-        window.location.href = `/?view=${currentView}`;
-      }
-      
-      function switchToWeekView() {
-        window.location.href = `/?date=${currentDate}&view=week`;
-      }
-      
-      function switchToDayView() {
-        window.location.href = `/?date=${currentDate}&view=day`;
-      }
+      // Initialize calendar navigation
+      initCalendarNavigation('<%= selectedDate %>', '<%= view %>');
 
       // Notification functionality
       let notificationDropdownOpen = false;
