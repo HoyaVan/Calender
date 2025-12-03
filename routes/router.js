@@ -115,6 +115,9 @@ router.get("/", async (req, res) => {
   try {
     const userId = req.session.user.user_id;
     
+    // Get view type from query parameter, default to 'day'
+    const view = req.query.view || 'day';
+    
     // Get date from query parameter, default to today
     let selectedDate = req.query.date;
     if (!selectedDate) {
@@ -129,18 +132,83 @@ router.get("/", async (req, res) => {
       selectedDate = today.toISOString().split('T')[0];
     }
     
-    const events = await db_events.getEventsByUserIdAndDate(userId, selectedDate);
     const loggedOut = req.query.loggedOut === 'true';
     
-    // Check if selected date is today
+    // Check if selected date is today (for day view) or current week (for week view)
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    const isToday = selectedDate === todayStr;
+    let isToday = selectedDate === todayStr;
+    
+    let events = [];
+    let weekData = null;
+    
+    if (view === 'week') {
+      // Calculate week dates (Sunday to Saturday)
+      const dateObj = new Date(selectedDate + 'T12:00:00');
+      const dayOfWeek = dateObj.getDay(); // 0 = Sunday, 6 = Saturday
+      
+      // Get Sunday of the week
+      const sunday = new Date(dateObj);
+      sunday.setDate(dateObj.getDate() - dayOfWeek);
+      const sundayStr = sunday.toISOString().split('T')[0];
+      
+      // Check if this week contains today
+      const todayDate = new Date(todayStr + 'T12:00:00');
+      const todayDayOfWeek = todayDate.getDay();
+      const todaySunday = new Date(todayDate);
+      todaySunday.setDate(todayDate.getDate() - todayDayOfWeek);
+      const todaySundayStr = todaySunday.toISOString().split('T')[0];
+      
+      // isToday is true if we're viewing the current week
+      isToday = sundayStr === todaySundayStr;
+      
+      // Get Saturday of the week (end date is exclusive, so use next day)
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 7);
+      const saturdayStr = saturday.toISOString().split('T')[0];
+      
+      // Get all events for the week
+      events = await db_events.getEventsByUserIdAndDateRange(userId, sundayStr, saturdayStr);
+      
+      // Organize events by day
+      const weekDays = [];
+      for (let i = 0; i < 7; i++) {
+        const day = new Date(sunday);
+        day.setDate(sunday.getDate() + i);
+        const dayStr = day.toISOString().split('T')[0];
+        
+        // Filter events for this day
+        const dayEvents = events.filter(event => {
+          const eventStart = new Date(event.event_start);
+          const eventEnd = new Date(event.event_end);
+          const dayStart = new Date(dayStr + 'T00:00:00');
+          const dayEnd = new Date(dayStr + 'T23:59:59');
+          return eventStart <= dayEnd && eventEnd >= dayStart;
+        });
+        
+        weekDays.push({
+          date: dayStr,
+          dateObj: day,
+          events: dayEvents
+        });
+      }
+      
+      weekData = {
+        sunday: sundayStr,
+        sundayDate: sunday,
+        days: weekDays
+      };
+    } else {
+      // Day view
+      events = await db_events.getEventsByUserIdAndDate(userId, selectedDate);
+    }
 
     res.render("main", {
       events,
       selectedDate,
       isToday,
+      view,
+      weekData,
       error: req.session.error,
       success: loggedOut ? 'You have been logged out successfully.' : req.session.success
     });
@@ -152,6 +220,8 @@ router.get("/", async (req, res) => {
       events: [],
       selectedDate: todayStr,
       isToday: true,
+      view: 'day',
+      weekData: null,
       error: "Failed to load events",
       success: null
     });

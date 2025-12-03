@@ -137,6 +137,63 @@ async function getEventsByUserIdAndDate(userId, date) {
 }
 
 /**
+ * Get events by user ID for a date range (events that occur within the range)
+ * @param {number} userId - The user ID to filter events by
+ * @param {string} startDate - Start date string in YYYY-MM-DD format
+ * @param {string} endDate - End date string in YYYY-MM-DD format (exclusive, so use next day)
+ * @returns {Promise<Array>} Array of event objects that occur within the date range
+ */
+async function getEventsByUserIdAndDateRange(userId, startDate, endDate) {
+  try {
+    const isConnected = await isMySQLConnected();
+    if (!isConnected) {
+      console.error('Cannot get events: MySQL is not connected');
+      return [];
+    }
+
+    if (!userId || !startDate || !endDate) {
+      console.error('Cannot get events: user ID, start date, and end date are required');
+      return [];
+    }
+
+    // Parse dates and create start and end timestamps
+    const rangeStart = new Date(startDate + 'T00:00:00.000Z');
+    const rangeEnd = new Date(endDate + 'T00:00:00.000Z');
+
+    // Format dates for MySQL (YYYY-MM-DD HH:MM:SS)
+    const rangeStartStr = rangeStart.toISOString().slice(0, 19).replace('T', ' ');
+    const rangeEndStr = rangeEnd.toISOString().slice(0, 19).replace('T', ' ');
+
+    // Get events where the event overlaps with the date range
+    // An event overlaps if: event_start < rangeEnd AND event_end > rangeStart
+    const query = `
+      SELECT 
+        e.event_id,
+        e.event_name,
+        e.event_start,
+        e.event_end,
+        e.event_owner_id,
+        e.event_security_id,
+        u.username as owner_username,
+        es.security_level
+      FROM event e
+      LEFT JOIN user u ON e.event_owner_id = u.user_id
+      LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
+      WHERE e.event_owner_id = ?
+        AND e.event_start < ?
+        AND e.event_end > ?
+      ORDER BY e.event_start ASC
+    `;
+    
+    const [rows] = await pool.execute(query, [userId, rangeEndStr, rangeStartStr]);
+    return rows;
+  } catch (error) {
+    console.error('Error getting events by user ID and date range:', error);
+    return [];
+  }
+}
+
+/**
  * Get all security levels from event_security table
  * @returns {Promise<Array>} Array of security level objects
  */
@@ -229,6 +286,7 @@ module.exports = {
   getAllEvents,
   getEventsByUserId,
   getEventsByUserIdAndDate,
+  getEventsByUserIdAndDateRange,
   getAllSecurityLevels,
   createEvent
 };
