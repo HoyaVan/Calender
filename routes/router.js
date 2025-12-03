@@ -131,6 +131,82 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Event creation routes - require authentication
+router.get("/addEvent", requireAuth, async (req, res) => {
+  try {
+    const securityLevels = await db_events.getAllSecurityLevels();
+    const error = req.session.error;
+    const success = req.session.success;
+    req.session.error = null;
+    req.session.success = null;
+
+    res.render("addEvent", {
+      securityLevels,
+      error,
+      success
+    });
+  } catch (error) {
+    console.error("Error loading add event page:", error);
+    res.render("addEvent", {
+      securityLevels: [],
+      error: "Failed to load security levels",
+      success: null
+    });
+  }
+});
+
+router.post("/addEvent", requireAuth, async (req, res) => {
+  const { event_name, event_start, event_end, event_security_id } = req.body;
+  const event_owner_id = req.session.user.user_id;
+
+  // Basic validation
+  if (!event_name || !event_start || !event_end || !event_security_id) {
+    req.session.error = "All fields are required";
+    return res.redirect("/addEvent");
+  }
+
+  // Validate event name length
+  if (event_name.trim().length > 45) {
+    req.session.error = "Event name must be 45 characters or less";
+    return res.redirect("/addEvent");
+  }
+
+  // Validate dates
+  const startDate = new Date(event_start);
+  const endDate = new Date(event_end);
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    req.session.error = "Invalid date format";
+    return res.redirect("/addEvent");
+  }
+
+  if (endDate <= startDate) {
+    req.session.error = "Event end time must be after event start time";
+    return res.redirect("/addEvent");
+  }
+
+  try {
+    const event = await db_events.createEvent({
+      event_name,
+      event_start,
+      event_end,
+      event_owner_id,
+      event_security_id: parseInt(event_security_id)
+    });
+
+    if (event) {
+      req.session.success = "Event created successfully!";
+      return res.redirect("/");
+    } else {
+      req.session.error = "Failed to create event";
+      return res.redirect("/addEvent");
+    }
+  } catch (error) {
+    console.error("Error creating event:", error);
+    req.session.error = error.message || "An error occurred while creating the event";
+    return res.redirect("/addEvent");
+  }
+});
+
 // Catch-all 404 handler - must be last
 router.use((req, res) => {
   res.status(404).render("404");
