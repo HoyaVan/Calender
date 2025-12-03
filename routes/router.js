@@ -143,8 +143,81 @@ router.get("/", async (req, res) => {
     
     let events = [];
     let weekData = null;
+    let monthData = null;
     
-    if (view === 'week') {
+    if (view === 'month') {
+      // Calculate month dates
+      const dateObj = new Date(selectedDate + 'T12:00:00');
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth();
+      
+      // Get first day of the month
+      const firstDay = new Date(year, month, 1);
+      const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
+      
+      // Get last day of the month
+      const lastDay = new Date(year, month + 1, 0);
+      const daysInMonth = lastDay.getDate();
+      
+      // Get the Sunday that starts the calendar grid (may be from previous month)
+      const calendarStart = new Date(firstDay);
+      calendarStart.setDate(firstDay.getDate() - firstDayOfWeek);
+      
+      // Get the Saturday that ends the calendar grid (may be from next month)
+      const calendarEnd = new Date(calendarStart);
+      calendarEnd.setDate(calendarStart.getDate() + 41); // 6 weeks * 7 days - 1
+      
+      const calendarStartStr = calendarStart.toISOString().split('T')[0];
+      const calendarEndStr = new Date(calendarEnd.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // Next day for exclusive range
+      
+      // Get all events for the month view range
+      events = await db_events.getEventsByUserIdAndDateRange(userId, calendarStartStr, calendarEndStr);
+      
+      // Check if this month contains today
+      const todayDate = new Date(todayStr + 'T12:00:00');
+      isToday = todayDate.getFullYear() === year && todayDate.getMonth() === month;
+      
+      // Organize days into weeks
+      const weeks = [];
+      let currentDate = new Date(calendarStart);
+      
+      for (let week = 0; week < 6; week++) {
+        const weekDays = [];
+        for (let day = 0; day < 7; day++) {
+          const dayStr = currentDate.toISOString().split('T')[0];
+          const isCurrentMonth = currentDate.getMonth() === month && currentDate.getFullYear() === year;
+          const isTodayDate = dayStr === todayStr;
+          
+          // Filter events for this day
+          const dayEvents = events.filter(event => {
+            const eventStart = new Date(event.event_start);
+            const eventEnd = new Date(event.event_end);
+            const dayStart = new Date(dayStr + 'T00:00:00');
+            const dayEnd = new Date(dayStr + 'T23:59:59');
+            return eventStart <= dayEnd && eventEnd >= dayStart;
+          });
+          
+          weekDays.push({
+            date: dayStr,
+            dateObj: new Date(currentDate),
+            dayNumber: currentDate.getDate(),
+            isCurrentMonth: isCurrentMonth,
+            isToday: isTodayDate,
+            events: dayEvents
+          });
+          
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        weeks.push(weekDays);
+      }
+      
+      monthData = {
+        year: year,
+        month: month,
+        monthName: dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        weeks: weeks
+      };
+    } else if (view === 'week') {
       // Calculate week dates (Sunday to Saturday)
       const dateObj = new Date(selectedDate + 'T12:00:00');
       const dayOfWeek = dateObj.getDay(); // 0 = Sunday, 6 = Saturday
@@ -211,6 +284,7 @@ router.get("/", async (req, res) => {
       isToday,
       view,
       weekData,
+      monthData,
       error: req.session.error,
       success: loggedOut ? 'You have been logged out successfully.' : req.session.success
     });
@@ -224,6 +298,7 @@ router.get("/", async (req, res) => {
       isToday: true,
       view: 'day',
       weekData: null,
+      monthData: null,
       error: "Failed to load events",
       success: null
     });

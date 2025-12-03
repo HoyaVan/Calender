@@ -1,0 +1,55 @@
+<!-- View Toggle Buttons - Always visible in order: Now, Day, Week, Month -->
+<div class="flex justify-center gap-2 mb-4">
+  <!-- Now Button -->
+  <% if (isToday) { %>
+    <button disabled
+      class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium">
+      Now
+    </button>
+  <% } else { %>
+    <button onclick="goToToday()" 
+      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+      Now
+    </button>
+  <% } %>
+  
+  <!-- Day Button -->
+  <% if (view === 'day') { %>
+    <button disabled
+      class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium">
+      Day
+    </button>
+  <% } else { %>
+    <button onclick="switchToDayView()" 
+      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+      Day
+    </button>
+  <% } %>
+  
+  <!-- Week Button -->
+  <% if (view === 'week') { %>
+    <button disabled
+      class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium">
+      Week
+    </button>
+  <% } else { %>
+    <button onclick="switchToWeekView()" 
+      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+      Week
+    </button>
+  <% } %>
+  
+  <!-- Month Button -->
+  <% if (view === 'month') { %>
+    <button disabled
+      class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium">
+      Month
+    </button>
+  <% } else { %>
+    <button onclick="switchToMonthView()" 
+      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+      Month
+    </button>
+  <% } %>
+</div>
+
