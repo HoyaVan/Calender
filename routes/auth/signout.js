@@ -12,11 +12,11 @@ router.get('/signout', (req, res) => {
       return res.redirect('/');
     }
 
-    // Clear the session cookie
+    // Clear the session cookie (options must match session config exactly)
     res.clearCookie('sid', {
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production'
+      sameSite: 'lax'
     });
 
     // Redirect to home page with success message
@@ -37,7 +37,7 @@ router.post('/signout', (req, res) => {
     res.clearCookie('sid', {
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production'
+      sameSite: 'lax'
     });
 
     res.redirect('/?loggedOut=true');

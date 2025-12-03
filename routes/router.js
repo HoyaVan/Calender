@@ -97,7 +97,7 @@ router.post('/logout', (req, res) => {
     res.clearCookie('sid', {
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production'
+      sameSite: 'lax'
     });
 
     res.redirect('/?loggedOut=true');
