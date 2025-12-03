@@ -5,6 +5,7 @@ require("dotenv").config();
 const loginRoutes = include('routes/auth/login');
 const signupRoutes = include('routes/auth/signup');
 const signoutRoutes = include('routes/auth/signout');
+const friendsRoutes = include('routes/friends');
 
 // Import database (using events for now, can be updated later)
 const db_events = include('database/util/events');
@@ -31,6 +32,7 @@ const requireAuth = (req, res, next) => {
 router.use('/', loginRoutes);
 router.use('/', signupRoutes);
 router.use('/', signoutRoutes);
+router.use('/', friendsRoutes);
 
 // Test endpoint to verify MySQL connection (remove in production)
 router.get('/test-mysql', async (req, res) => {
@@ -54,7 +56,7 @@ router.get('/test-mysql', async (req, res) => {
     const dbVersion = dbRows[0]?.version || 'unknown';
     
     // Count users in database
-    const [userCount] = await connection.query('SELECT COUNT(*) as count FROM users');
+    const [userCount] = await connection.query('SELECT COUNT(*) as count FROM user');
     const count = userCount[0]?.count || 0;
     
     connection.release();

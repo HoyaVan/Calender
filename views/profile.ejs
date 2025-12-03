@@ -18,10 +18,20 @@
             <%= displayName %>
           </span>!
         </h1>
-        <p class="text-gray-500">Welcome to your profile. Manage your events below.</p>
+        <p class="text-gray-500">Welcome to your profile. Manage your friends and events below.</p>
       </div>
 
       <div class="flex items-center space-x-3">
+        <!-- Profile -->
+        <a href="/profile"
+          class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition"
+          title="Profile">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-5 h-5"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </a>
 
         <!-- Home -->
         <a href="/"
@@ -50,78 +60,206 @@
   </header>
 
   <main class="max-w-5xl mx-auto px-4 py-8">
-    <!-- Toolbar -->
-    <section class="max-w-5xl mx-auto mb-6">
-      events
+    <!-- Success/Error Messages -->
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+        <span class="block sm:inline"><%= success %></span>
+      </div>
+    <% } %>
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <span class="block sm:inline"><%= error %></span>
+      </div>
+    <% } %>
+
+    <!-- Friend Invite Section -->
+    <section class="mb-8 bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Send Friend Request</h2>
+      <div class="mb-4">
+        <form id="searchForm" class="flex gap-2">
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search by username or email..." 
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button 
+            type="submit" 
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+          >
+            Search
+          </button>
+        </form>
+      </div>
+      <div id="searchResults" class="mt-4"></div>
     </section>
 
-    <!-- Cards -->
-    <section class="max-w-5xl mx-auto">
-      <% const myEvents=(typeof events !=='undefined' && events && events.length) ? events : []; %>
-
-        <% if (myEvents.length===0) { %>
-          <div class="rounded-lg border border-dashed border-gray-300 bg-white p-10 text-center">
-            <p class="text-gray-600">No events yet.</p>
-            <a href="/upload" class="inline-block mt-3 text-blue-600 hover:underline">Create your first event</a>
-          </div>
-          <% } else { %>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <% for (const event of myEvents) { %>
-                <article class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-4 flex flex-col"
-                  data-event-id="<%= event.event_id || event.thread_id %>" onclick="loadEvent('<%= event.event_id || event.thread_id %>')">
-                  <!-- Title + status/visibility -->
-                  <div class="mb-2 flex items-start justify-between gap-3">
-                    <h3 class="text-gray-900 font-semibold leading-6">
-                      <%= event.title %>
-                    </h3>
-                    <div class="flex items-center gap-2">
-
-                      <!-- Actions -->
-                      <button type="button"
-                        class="cursor-pointer rounded-md ring-1 ring-gray-300 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 transition"
-                        onclick="loadEvent('<%= event.event_id || event.thread_id %>')">
-                        View
-                      </button>
-
-                      <form action="/events/<%= event.event_id || event.thread_id %>/delete" method="post" class="ml-auto">
-                        <button type="submit" onclick="return confirm('Delete this event? This cannot be undone.');"
-                          class="cursor-pointer rounded-md bg-red-500 px-3 py-2 text-sm text-white hover:bg-red-600 transition">
-                          Delete
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-
-                  <!-- Tags -->
-                  <% if (event.tags && event.tags.length) { %>
-                    <div class="mb-3 flex flex-wrap gap-2">
-                      <% for (const tag of event.tags) { %>
-                        <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700">#
-                          <%= tag %>
-                        </span>
-                        <% } %>
-                    </div>
-                    <% } %>
-
-                      <!-- Meta -->
-                      <dl class="mb-4 grid grid-cols-3 gap-2 text-sm">
-                        <div class="rounded-md bg-gray-100 py-2 text-center">
-                          <dt class="text-gray-500">Event D-Date</dt>
-                          <dd class="font-semibold text-gray-900 js-d_date">
-                            <%= event.d_date %>
-                          </dd>
-                        </div>
-                      </dl>
-                </article>
-                <% } %>
+    <!-- Pending Friend Requests Section -->
+    <section class="mb-8 bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Pending Friend Requests</h2>
+      <% const pendingRequestsList = (typeof pendingRequests !== 'undefined' && pendingRequests && pendingRequests.length) ? pendingRequests : []; %>
+      <% if (pendingRequestsList.length === 0) { %>
+        <p class="text-gray-500">No pending friend requests.</p>
+      <% } else { %>
+        <div class="space-y-3">
+          <% for (const request of pendingRequestsList) { %>
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p class="font-medium text-gray-900"><%= request.username %></p>
+                <p class="text-sm text-gray-500"><%= request.email %></p>
+              </div>
+              <div class="flex gap-2">
+                <form action="/friends/accept-request" method="POST" class="inline">
+                  <input type="hidden" name="requestUserId" value="<%= request.request_user_id %>">
+                  <button 
+                    type="submit" 
+                    class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+                  >
+                    Accept
+                  </button>
+                </form>
+                <form action="/friends/reject-request" method="POST" class="inline">
+                  <input type="hidden" name="requestUserId" value="<%= request.request_user_id %>">
+                  <button 
+                    type="submit" 
+                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+                  >
+                    Reject
+                  </button>
+                </form>
+              </div>
             </div>
+          <% } %>
+        </div>
+      <% } %>
     </section>
 
+    <!-- Sent Friend Requests Section -->
+    <section class="mb-8 bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Sent Friend Requests</h2>
+      <% const sentRequestsList = (typeof sentRequests !== 'undefined' && sentRequests && sentRequests.length) ? sentRequests : []; %>
+      <% if (sentRequestsList.length === 0) { %>
+        <p class="text-gray-500">No sent friend requests.</p>
+      <% } else { %>
+        <div class="space-y-3">
+          <% for (const request of sentRequestsList) { %>
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p class="font-medium text-gray-900"><%= request.username %></p>
+                <p class="text-sm text-gray-500"><%= request.email %></p>
+              </div>
+              <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Pending</span>
+            </div>
+          <% } %>
+        </div>
+      <% } %>
+    </section>
+
+    <!-- Friends List Section -->
+    <section class="mb-8 bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">My Friends</h2>
+      <% const friendsList = (typeof friends !== 'undefined' && friends && friends.length) ? friends : []; %>
+      <% if (friendsList.length === 0) { %>
+        <p class="text-gray-500">No friends yet. Send friend requests to get started!</p>
+      <% } else { %>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <% for (const friend of friendsList) { %>
+            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p class="font-medium text-gray-900"><%= friend.username %></p>
+              <p class="text-sm text-gray-500"><%= friend.email %></p>
+            </div>
+          <% } %>
+        </div>
+      <% } %>
+    </section>
+
+    <!-- Events Section (keeping existing events display) -->
+    <section class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">My Events</h2>
+      <% const myEvents = (typeof events !== 'undefined' && events && events.length) ? events : []; %>
+      <% if (myEvents.length === 0) { %>
+        <div class="rounded-lg border border-dashed border-gray-300 bg-white p-10 text-center">
+          <p class="text-gray-600">No events yet.</p>
+          <a href="/addEvent" class="inline-block mt-3 text-blue-600 hover:underline">Create your first event</a>
+        </div>
+      <% } else { %>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <% for (const event of myEvents) { %>
+            <article class="bg-gray-50 rounded-lg border border-gray-200 p-4">
+              <h3 class="text-gray-900 font-semibold mb-2"><%= event.event_name || event.title %></h3>
+              <% if (event.event_start) { %>
+                <p class="text-sm text-gray-600">Start: <%= new Date(event.event_start).toLocaleString() %></p>
+              <% } %>
+              <% if (event.event_end) { %>
+                <p class="text-sm text-gray-600">End: <%= new Date(event.event_end).toLocaleString() %></p>
+              <% } %>
+            </article>
+          <% } %>
+        </div>
+      <% } %>
+    </section>
   </main>
 
   <!-- Include Footer -->
   <%- include('templates/footer') %>
 
+  <script>
+    // Handle user search
+    document.getElementById('searchForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const searchTerm = document.getElementById('searchInput').value.trim();
+      const resultsDiv = document.getElementById('searchResults');
+
+      if (!searchTerm) {
+        resultsDiv.innerHTML = '<p class="text-gray-500">Please enter a search term.</p>';
+        return;
+      }
+
+      resultsDiv.innerHTML = '<p class="text-gray-500">Searching...</p>';
+
+      try {
+        const response = await fetch('/friends/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `searchTerm=${encodeURIComponent(searchTerm)}`
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.users.length > 0) {
+          let html = '<div class="space-y-2">';
+          data.users.forEach(user => {
+            html += `
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p class="font-medium text-gray-900">${user.username}</p>
+                  <p class="text-sm text-gray-500">${user.email}</p>
+                </div>
+                <form action="/friends/send-request" method="POST" class="inline">
+                  <input type="hidden" name="receiveUserId" value="${user.user_id}">
+                  <button 
+                    type="submit" 
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm"
+                  >
+                    Send Request
+                  </button>
+                </form>
+              </div>
+            `;
+          });
+          html += '</div>';
+          resultsDiv.innerHTML = html;
+        } else {
+          resultsDiv.innerHTML = '<p class="text-gray-500">No users found.</p>';
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        resultsDiv.innerHTML = '<p class="text-red-500">Error searching users. Please try again.</p>';
+      }
+    });
+  </script>
 </body>
 
 </html>
