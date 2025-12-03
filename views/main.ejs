@@ -17,26 +17,48 @@
         <a href="/">Calendar App</a>
       </h1>
 
-      <!-- Center: Search Bar -->
-      <!-- <div class="flex-1 flex justify-center">
-        <form id="searchForm" class="flex items-center gap-2 w-full max-w-md" onsubmit="return submitSearch(event)">
-          <input id="searchInput" type="search" placeholder="Search events…"
-            class="w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 px-3 py-2 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm" />
-          <button type="submit"
-            class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
-            Search
-          </button>
-        </form>
-      </div> -->
-
       <!-- Right: Auth buttons -->
       <div class="flex items-center gap-3 ml-4">
         <% if (locals.authenticated) { %>
+          <!-- Notification Button -->
+          <div class="relative">
+            <button id="notificationBtn" onclick="toggleNotifications()" title="Notifications"
+              class="h-10 w-10 flex items-center justify-center rounded-full bg-yellow-500 text-white hover:bg-yellow-600 transition ring-2 ring-gray-200 relative">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              <!-- Badge for notification count -->
+              <span id="notificationBadge" class="hidden absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold"></span>
+            </button>
+            
+            <!-- Notification Dropdown -->
+            <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+              <div class="p-3 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-sm font-semibold text-gray-900">Events Happening Now</h3>
+              </div>
+              <div id="notificationContent" class="p-2">
+                <!-- Loading state -->
+                <div id="notificationLoading" class="text-center py-4 text-gray-500 text-sm">
+                  Loading...
+                </div>
+                <!-- Empty state -->
+                <div id="notificationEmpty" class="hidden text-center py-8 text-gray-500 text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p>No events happening right now</p>
+                </div>
+                <!-- Events list -->
+                <div id="notificationEvents" class="hidden space-y-2"></div>
+              </div>
+            </div>
+          </div>
+
           <!-- Profile -->
           <a href="/profile" title="Profile"
             class="h-10 w-10 flex items-center justify-center rounded-full bg-purple-500 text-white hover:bg-purple-600 transition ring-2 ring-gray-200">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
@@ -45,8 +67,7 @@
           <!-- Add Event -->
           <a href="/addEvent" title="New Event"
             class="h-10 w-10 flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition ring-2 ring-gray-200">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
           </a>
@@ -62,12 +83,10 @@
               </svg>
             </button>
           </form>
-          <% } else { %>
-            <a href="/login" class="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition">Log
-              In</a>
-            <a href="/signup" class="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition">Sign
-              Up</a>
-            <% } %>
+        <% } else { %>
+          <a href="/login" class="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition">Log In</a>
+          <a href="/signup" class="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition">Sign Up</a>
+        <% } %>
       </div>
     </div>
   </header>
@@ -339,6 +358,164 @@
       function switchToDayView() {
         window.location.href = `/?date=${currentDate}&view=day`;
       }
+
+      // Notification functionality
+      let notificationDropdownOpen = false;
+
+      function toggleNotifications() {
+        const dropdown = document.getElementById('notificationDropdown');
+        notificationDropdownOpen = !notificationDropdownOpen;
+        
+        if (notificationDropdownOpen) {
+          dropdown.classList.remove('hidden');
+          loadCurrentEvents();
+          // Close dropdown when clicking outside
+          setTimeout(() => {
+            document.addEventListener('click', closeNotificationsOnOutsideClick);
+          }, 100);
+        } else {
+          dropdown.classList.add('hidden');
+          document.removeEventListener('click', closeNotificationsOnOutsideClick);
+        }
+      }
+
+      function closeNotificationsOnOutsideClick(event) {
+        const dropdown = document.getElementById('notificationDropdown');
+        const button = document.getElementById('notificationBtn');
+        
+        if (!dropdown.contains(event.target) && !button.contains(event.target)) {
+          notificationDropdownOpen = false;
+          dropdown.classList.add('hidden');
+          document.removeEventListener('click', closeNotificationsOnOutsideClick);
+        }
+      }
+
+      async function loadCurrentEvents() {
+        const loadingEl = document.getElementById('notificationLoading');
+        const emptyEl = document.getElementById('notificationEmpty');
+        const eventsEl = document.getElementById('notificationEvents');
+        const badgeEl = document.getElementById('notificationBadge');
+
+        try {
+          loadingEl.classList.remove('hidden');
+          emptyEl.classList.add('hidden');
+          eventsEl.classList.add('hidden');
+
+          const response = await fetch('/api/current-events');
+          const data = await response.json();
+
+          loadingEl.classList.add('hidden');
+
+          if (data.success && data.events && data.events.length > 0) {
+            // Update badge
+            badgeEl.textContent = data.events.length;
+            badgeEl.classList.remove('hidden');
+
+            // Display events
+            eventsEl.innerHTML = '';
+            data.events.forEach(event => {
+              const eventCard = createEventCard(event);
+              eventsEl.appendChild(eventCard);
+            });
+            eventsEl.classList.remove('hidden');
+          } else {
+            // No events
+            badgeEl.classList.add('hidden');
+            emptyEl.classList.remove('hidden');
+          }
+        } catch (error) {
+          console.error('Error loading current events:', error);
+          loadingEl.classList.add('hidden');
+          emptyEl.classList.remove('hidden');
+          badgeEl.classList.add('hidden');
+        }
+      }
+
+      function createEventCard(event) {
+        const card = document.createElement('div');
+        card.className = 'bg-white border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors cursor-pointer';
+        
+        const startTime = new Date(event.event_start);
+        const endTime = new Date(event.event_end);
+        
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <h4 class="text-sm font-semibold text-gray-900 truncate mb-1">
+                ${escapeHtml(event.event_name)}
+              </h4>
+              <div class="text-xs text-gray-600 space-y-1">
+                <div class="flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>${startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Ends: ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+                </div>
+              </div>
+            </div>
+            ${event.security_level ? `
+              <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 whitespace-nowrap">
+                ${escapeHtml(event.security_level)}
+              </span>
+            ` : ''}
+          </div>
+        `;
+        
+        // Click to navigate to the event's date
+        card.addEventListener('click', () => {
+          const eventDate = startTime.toISOString().split('T')[0];
+          window.location.href = `/?date=${eventDate}&view=day`;
+        });
+        
+        return card;
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // Auto-refresh notifications every 30 seconds
+      setInterval(() => {
+        if (notificationDropdownOpen) {
+          loadCurrentEvents();
+        } else {
+          // Still update badge count even when closed
+          fetch('/api/current-events')
+            .then(res => res.json())
+            .then(data => {
+              const badgeEl = document.getElementById('notificationBadge');
+              if (data.success && data.events && data.events.length > 0) {
+                badgeEl.textContent = data.events.length;
+                badgeEl.classList.remove('hidden');
+              } else {
+                badgeEl.classList.add('hidden');
+              }
+            })
+            .catch(err => console.error('Error updating notification badge:', err));
+        }
+      }, 30000);
+
+      // Load initial badge count on page load
+      window.addEventListener('DOMContentLoaded', () => {
+        fetch('/api/current-events')
+          .then(res => res.json())
+          .then(data => {
+            const badgeEl = document.getElementById('notificationBadge');
+            if (data.success && data.events && data.events.length > 0) {
+              badgeEl.textContent = data.events.length;
+              badgeEl.classList.remove('hidden');
+            }
+          })
+          .catch(err => console.error('Error loading initial notifications:', err));
+      });
     </script>
   </main>
 
