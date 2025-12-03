@@ -223,6 +223,69 @@ async function getAllSecurityLevels() {
 }
 
 /**
+ * Get events happening right now (current date and time) for a user
+ * Includes events where user is owner OR participant (via event_user table)
+ * Uses MySQL's NOW() function to ensure accurate time comparison
+ * @param {number} userId - The user ID to filter events by
+ * @returns {Promise<Array>} Array of event objects happening right now, ordered by earliest start time
+ */
+async function getCurrentEvents(userId) {
+  try {
+    const isConnected = await isMySQLConnected();
+    if (!isConnected) {
+      console.error('Cannot get current events: MySQL is not connected');
+      return [];
+    }
+
+    if (!userId) {
+      console.error('Cannot get current events: user ID is required');
+      return [];
+    }
+
+    // Use MySQL's NOW() function to get current server time
+    // This ensures accurate time comparison regardless of timezone
+    // Get events where:
+    // 1. User is the owner (event_owner_id = userId)
+    // 2. OR user is a participant (exists in event_user table)
+    // AND current time (NOW()) is BETWEEN event_start and event_end (inclusive)
+    // This means: event_start <= NOW() <= event_end
+    // Using EXISTS subquery to avoid duplicate rows from JOINs
+    const query = `
+      SELECT 
+        e.event_id,
+        e.event_name,
+        e.event_start,
+        e.event_end,
+        e.event_owner_id,
+        e.event_security_id,
+        u.username as owner_username,
+        es.security_level
+      FROM event e
+      LEFT JOIN user u ON e.event_owner_id = u.user_id
+      LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
+      WHERE (
+        e.event_owner_id = ? 
+        OR EXISTS (
+          SELECT 1 
+          FROM event_user eu 
+          WHERE eu.event_id = e.event_id 
+          AND eu.user_id = ?
+        )
+      )
+      AND e.event_start <= NOW()
+      AND e.event_end >= NOW()
+      ORDER BY e.event_start ASC
+    `;
+    
+    const [rows] = await pool.execute(query, [userId, userId]);
+    return rows;
+  } catch (error) {
+    console.error('Error getting current events:', error);
+    return [];
+  }
+}
+
+/**
  * Create a new event
  * @param {Object} eventData - { event_name, event_start, event_end, event_owner_id, event_security_id }
  * @returns {Promise<Object|null>} Created event object or null if failed
@@ -323,5 +386,6 @@ module.exports = {
   getEventsByUserIdAndDate,
   getEventsByUserIdAndDateRange,
   getAllSecurityLevels,
-  createEvent
+  createEvent,
+  getCurrentEvents
 };

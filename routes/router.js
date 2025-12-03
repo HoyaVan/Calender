@@ -388,6 +388,26 @@ router.post("/addEvent", requireAuth, async (req, res) => {
   }
 });
 
+// API endpoint to get current events (for notifications)
+router.get("/api/current-events", requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const currentEvents = await db_events.getCurrentEvents(userId);
+    
+    return res.json({
+      success: true,
+      events: currentEvents
+    });
+  } catch (error) {
+    console.error("Error fetching current events:", error);
+    return res.json({
+      success: false,
+      events: [],
+      error: "Failed to fetch current events"
+    });
+  }
+});
+
 // Catch-all 404 handler - must be last
 router.use((req, res) => {
   res.status(404).render("404");
