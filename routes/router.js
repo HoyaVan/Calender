@@ -286,7 +286,8 @@ router.get("/", async (req, res) => {
       weekData,
       monthData,
       error: req.session.error,
-      success: loggedOut ? 'You have been logged out successfully.' : req.session.success
+      success: loggedOut ? 'You have been logged out successfully.' : req.session.success || req.query.success,
+      query: req.query
     });
   } catch (error) {
     console.error("Error loading main page:", error);
@@ -397,6 +398,136 @@ router.get("/api/current-events", requireAuth, async (req, res) => {
       success: false,
       events: [],
       error: "Failed to fetch current events"
+    });
+  }
+});
+
+// API endpoint to soft delete an event
+router.post("/api/delete-event", requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const { eventId } = req.body;
+
+    if (!eventId) {
+      return res.json({
+        success: false,
+        error: "Event ID is required"
+      });
+    }
+
+    const deleted = await db_events.softDeleteEvent(parseInt(eventId), userId);
+    
+    if (deleted) {
+      return res.json({
+        success: true,
+        message: "Event deleted successfully"
+      });
+    } else {
+      return res.json({
+        success: false,
+        error: "Failed to delete event. You may not have permission to delete this event."
+      });
+    }
+  } catch (error) {
+    console.error("Error deleting event:", error);
+    return res.json({
+      success: false,
+      error: error.message || "Failed to delete event"
+    });
+  }
+});
+
+// Deleted events page - shows all deleted events for the user
+router.get("/deleted-events", requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const deletedEvents = await db_events.getDeletedEventsByUserId(userId);
+    const error = req.session.error;
+    const success = req.session.success || req.query.success;
+    req.session.error = null;
+    req.session.success = null;
+
+    res.render("deletedEvents", {
+      deletedEvents,
+      error,
+      success
+    });
+  } catch (error) {
+    console.error("Error loading deleted events page:", error);
+    res.render("deletedEvents", {
+      deletedEvents: [],
+      error: "Failed to load deleted events",
+      success: null
+    });
+  }
+});
+
+// API endpoint to restore a deleted event
+router.post("/api/restore-event", requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const { eventId } = req.body;
+
+    if (!eventId) {
+      return res.json({
+        success: false,
+        error: "Event ID is required"
+      });
+    }
+
+    const restored = await db_events.restoreEvent(parseInt(eventId), userId);
+    
+    if (restored) {
+      return res.json({
+        success: true,
+        message: "Event restored successfully"
+      });
+    } else {
+      return res.json({
+        success: false,
+        error: "Failed to restore event. It may have been deleted more than 7 days ago."
+      });
+    }
+  } catch (error) {
+    console.error("Error restoring event:", error);
+    return res.json({
+      success: false,
+      error: error.message || "Failed to restore event"
+    });
+  }
+});
+
+// API endpoint to permanently delete an event
+router.post("/api/permanently-delete-event", requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user.user_id;
+    const { eventId } = req.body;
+
+    if (!eventId) {
+      return res.json({
+        success: false,
+        error: "Event ID is required"
+      });
+    }
+
+    const deleted = await db_events.permanentlyDeleteEvent(parseInt(eventId), userId);
+    
+    if (deleted) {
+      return res.json({
+        success: true,
+        message: "Event permanently deleted"
+      });
+    } else {
+      return res.json({
+        success: false,
+        error: "Failed to permanently delete event"
+      });
+    }
+  } catch (error) {
+    console.error("Error permanently deleting event:", error);
+    return res.json({
+      success: false,
+      error: error.message || "Failed to permanently delete event"
     });
   }
 });

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deleted Events</title>
+    <link rel="stylesheet" href="/output.css" />
+</head>
+
+<body class="min-h-screen bg-gray-100 flex flex-col">
+    <!-- Navigation Header -->
+    <%- include('partials/navigation', { currentPage: 'deletedEvents' }) %>
+
+    <!-- Main Content -->
+    <main class="flex-1 px-4 py-8">
+        <div class="max-w-5xl mx-auto">
+            <div class="bg-white rounded-lg shadow-md p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-900">Deleted Events</h2>
+                        <p class="text-gray-600 mt-2">Restore or permanently delete your deleted events</p>
+                        <p class="text-sm text-gray-500 mt-1">Events deleted more than 7 days ago cannot be restored</p>
+                    </div>
+                    <a href="/" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
+                        Back to Calendar
+                    </a>
+                </div>
+
+                <!-- Error Message -->
+                <% if (error) { %>
+                    <div id="error-message" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 relative">
+                        <button onclick="hideErrorMessage()" class="absolute top-3 right-1 pr-2 text-red-700 hover:text-red-900 font-bold text-lg">&times;</button>
+                        <strong class="font-bold">Error:</strong> <%= error %>
+                    </div>
+                <% } %>
+
+                <!-- Success Message -->
+                <% if (success) { %>
+                    <div id="success-message" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 relative">
+                        <button onclick="hideSuccessMessage()" class="absolute top-3 right-1 pr-2 text-green-700 hover:text-green-900 font-bold text-lg">&times;</button>
+                        <strong class="font-bold">Success:</strong> <%= success %>
+                    </div>
+                <% } %>
+
+                <!-- Deleted Events List -->
+                <% if (deletedEvents && deletedEvents.length > 0) { %>
+                    <div class="space-y-4">
+                        <% deletedEvents.forEach(event => { %>
+                            <% 
+                                const deletedDate = event.deleted_at ? new Date(event.deleted_at) : null;
+                                const now = new Date();
+                                let daysSinceDeleted = null;
+                                let canRestore = true;
+                                
+                                if (deletedDate) {
+                                    daysSinceDeleted = Math.floor((now - deletedDate) / (1000 * 60 * 60 * 24));
+                                    canRestore = daysSinceDeleted < 7;
+                                }
+                                
+                                const startTime = new Date(event.event_start);
+                                const endTime = new Date(event.event_end);
+                                const startDateStr = startTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                const startTimeStr = startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                                const endDateStr = endTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                const endTimeStr = endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                                const deletedDateStr = deletedDate ? deletedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown';
+                                const deletedTimeStr = deletedDate ? deletedDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+                            %>
+                            <div class="border border-gray-300 rounded-lg p-4 hover:shadow-md transition-shadow <%= !canRestore ? 'bg-gray-50 opacity-75' : '' %>">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <h3 class="text-lg font-semibold text-gray-900"><%= event.event_name %></h3>
+                                            <% if (event.security_level) { %>
+                                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-600 text-white">
+                                                    <%= event.security_level %>
+                                                </span>
+                                            <% } %>
+                                        </div>
+                                        
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-600 mb-3">
+                                            <div>
+                                                <span class="font-semibold text-gray-700">Start:</span>
+                                                <span><%= startDateStr %> at <%= startTimeStr %></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-semibold text-gray-700">End:</span>
+                                                <span><%= endDateStr %> at <%= endTimeStr %></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-sm text-gray-500">
+                                            <span class="font-semibold">Deleted:</span>
+                                            <% if (deletedDate) { %>
+                                                <span><%= deletedDateStr %> at <%= deletedTimeStr %></span>
+                                                <% if (daysSinceDeleted !== null) { %>
+                                                    <span class="ml-2 <%= canRestore ? 'text-green-600' : 'text-red-600' %>">
+                                                        (<%= daysSinceDeleted %> day<%= daysSinceDeleted !== 1 ? 's' : '' %> ago)
+                                                    </span>
+                                                <% } %>
+                                            <% } else { %>
+                                                <span class="text-gray-400">Date unknown</span>
+                                            <% } %>
+                                        </div>
+                                        
+                                        <% if (!canRestore && deletedDate) { %>
+                                            <div class="mt-2 text-sm text-red-600 font-medium">
+                                                ⚠️ This event cannot be restored (deleted more than 7 days ago)
+                                            </div>
+                                        <% } %>
+                                    </div>
+                                    
+                                    <div class="flex flex-col gap-2">
+                                        <% if (canRestore) { %>
+                                            <button 
+                                                data-event-id="<%= event.event_id %>"
+                                                onclick="restoreEvent(this.dataset.eventId)"
+                                                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium">
+                                                Restore
+                                            </button>
+                                        <% } else { %>
+                                            <button 
+                                                disabled
+                                                class="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed text-sm font-medium">
+                                                Cannot Restore
+                                            </button>
+                                        <% } %>
+                                        
+                                        <button 
+                                            data-event-id="<%= event.event_id %>"
+                                            data-event-name="<%= event.event_name.replace(/"/g, '&quot;') %>"
+                                            onclick="permanentlyDeleteEvent(this.dataset.eventId, this.dataset.eventName)"
+                                            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium">
+                                            Delete Permanently
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-12">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-2">No Deleted Events</h3>
+                        <p class="text-gray-500">You don't have any deleted events at the moment.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <%- include('templates/footer', { showQuickLinks: false }) %>
+
+    <!-- JavaScript for deleted events page -->
+    <script src="/js/deletedEvents.js"></script>
+</body>
+
+</html>
+
