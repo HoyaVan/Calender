@@ -50,19 +50,41 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label for="event_start" class="block text-sm font-medium text-gray-700 mb-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Start Date & Time <span class="text-red-500">*</span>
                             </label>
-                            <input type="datetime-local" id="event_start" name="event_start" required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label for="event_start_date" class="block text-xs text-gray-600 mb-1">Date</label>
+                                    <input type="date" id="event_start_date" required
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="event_start_time" class="block text-xs text-gray-600 mb-1">Time</label>
+                                    <input type="time" id="event_start_time" required
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+                            <input type="hidden" id="event_start" name="event_start" required>
                         </div>
 
                         <div>
-                            <label for="event_end" class="block text-sm font-medium text-gray-700 mb-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
                                 End Date & Time <span class="text-red-500">*</span>
                             </label>
-                            <input type="datetime-local" id="event_end" name="event_end" required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label for="event_end_date" class="block text-xs text-gray-600 mb-1">Date</label>
+                                    <input type="date" id="event_end_date" required
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="event_end_time" class="block text-xs text-gray-600 mb-1">Time</label>
+                                    <input type="time" id="event_end_time" required
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+                            <input type="hidden" id="event_end" name="event_end" required>
                         </div>
                     </div>
 
@@ -75,12 +97,45 @@
                             <option value="">Select a security level</option>
                             <% if (securityLevels && securityLevels.length > 0) { %>
                                 <% securityLevels.forEach(level => { %>
-                                    <option value="<%= level.event_security_id %>"><%= level.security_level %></option>
+                                    <% if (level.security_level && level.security_level.toLowerCase() !== 'deleted') { %>
+                                        <option value="<%= level.event_security_id %>"><%= level.security_level %></option>
+                                    <% } %>
                                 <% }); %>
                             <% } else { %>
                                 <option value="" disabled>No security levels available</option>
                             <% } %>
                         </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Event Color
+                        </label>
+                        <div class="flex flex-wrap gap-3">
+                            <% 
+                            const presetColors = [
+                                { name: 'Blue', value: '#3B82F6', bgClass: 'bg-blue-500', borderClass: 'border-blue-500' },
+                                { name: 'Green', value: '#10B981', bgClass: 'bg-green-500', borderClass: 'border-green-500' },
+                                { name: 'Red', value: '#EF4444', bgClass: 'bg-red-500', borderClass: 'border-red-500' },
+                                { name: 'Yellow', value: '#F59E0B', bgClass: 'bg-yellow-500', borderClass: 'border-yellow-500' },
+                                { name: 'Purple', value: '#8B5CF6', bgClass: 'bg-purple-500', borderClass: 'border-purple-500' },
+                                { name: 'Pink', value: '#EC4899', bgClass: 'bg-pink-500', borderClass: 'border-pink-500' },
+                                { name: 'Indigo', value: '#6366F1', bgClass: 'bg-indigo-500', borderClass: 'border-indigo-500' },
+                                { name: 'Gray', value: '#6B7280', bgClass: 'bg-gray-500', borderClass: 'border-gray-500' }
+                            ];
+                            %>
+                            <% presetColors.forEach((color, index) => { %>
+                                <label class="relative cursor-pointer group">
+                                    <input type="radio" name="event_color" value="<%= color.value %>" 
+                                           class="sr-only peer" 
+                                           <%= index === 0 ? 'checked' : '' %>>
+                                    <div class="w-12 h-12 rounded-lg <%= color.bgClass %> border-2 border-transparent peer-checked:border-gray-900 peer-checked:ring-2 peer-checked:ring-gray-300 transition-all hover:scale-110 group-hover:ring-2 group-hover:ring-gray-200" 
+                                         title="<%= color.name %>">
+                                    </div>
+                                </label>
+                            <% }); %>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">Select a color to help organize your events</p>
                     </div>
 
                     <div class="flex gap-4 pt-4">
@@ -126,6 +181,23 @@
             }
         }
 
+        // Helper function to combine date and time into datetime-local format
+        function combineDateTime(dateInput, timeInput) {
+            if (!dateInput.value || !timeInput.value) {
+                return '';
+            }
+            return dateInput.value + 'T' + timeInput.value;
+        }
+
+        // Helper function to set today's date as default
+        function setTodayDate(dateInput) {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+        }
+
         // Auto-hide messages after 5 seconds
         document.addEventListener('DOMContentLoaded', function() {
             const errorMsg = document.getElementById('error-message');
@@ -138,25 +210,95 @@
                 setTimeout(hideSuccessMessage, 5000);
             }
 
-            // Set minimum end date to be after start date
-            const startInput = document.getElementById('event_start');
-            const endInput = document.getElementById('event_end');
+            // Get date and time inputs
+            const startDateInput = document.getElementById('event_start_date');
+            const startTimeInput = document.getElementById('event_start_time');
+            const endDateInput = document.getElementById('event_end_date');
+            const endTimeInput = document.getElementById('event_end_time');
+            const startHiddenInput = document.getElementById('event_start');
+            const endHiddenInput = document.getElementById('event_end');
 
-            startInput.addEventListener('change', function() {
-                if (this.value) {
-                    endInput.min = this.value;
-                    if (endInput.value && endInput.value <= this.value) {
-                        endInput.value = '';
+            // Set default dates to today
+            setTodayDate(startDateInput);
+            setTodayDate(endDateInput);
+
+            // Function to update hidden datetime inputs
+            function updateHiddenInputs() {
+                startHiddenInput.value = combineDateTime(startDateInput, startTimeInput);
+                endHiddenInput.value = combineDateTime(endDateInput, endTimeInput);
+            }
+
+            // Update hidden inputs whenever date or time changes
+            startDateInput.addEventListener('change', updateHiddenInputs);
+            startTimeInput.addEventListener('change', updateHiddenInputs);
+            endDateInput.addEventListener('change', updateHiddenInputs);
+            endTimeInput.addEventListener('change', updateHiddenInputs);
+
+            // Validate that end datetime is after start datetime
+            function validateDateTime() {
+                const startDateTime = combineDateTime(startDateInput, startTimeInput);
+                const endDateTime = combineDateTime(endDateInput, endTimeInput);
+
+                if (startDateTime && endDateTime) {
+                    const start = new Date(startDateTime);
+                    const end = new Date(endDateTime);
+
+                    if (end <= start) {
+                        alert('End date and time must be after start date and time');
+                        endTimeInput.value = '';
+                        endDateInput.value = startDateInput.value;
+                        updateHiddenInputs();
+                        return false;
                     }
                 }
-            });
+                return true;
+            }
 
-            endInput.addEventListener('change', function() {
-                if (startInput.value && this.value <= startInput.value) {
-                    alert('End date must be after start date');
-                    this.value = '';
+            // Validate on form submit
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(e) {
+                updateHiddenInputs();
+                if (!validateDateTime()) {
+                    e.preventDefault();
+                    return false;
                 }
             });
+
+            // Validate when end date/time changes
+            endDateInput.addEventListener('change', function() {
+                if (!validateDateTime()) {
+                    this.value = startDateInput.value;
+                }
+                updateHiddenInputs();
+            });
+
+            endTimeInput.addEventListener('change', function() {
+                if (!validateDateTime()) {
+                    this.value = '';
+                }
+                updateHiddenInputs();
+            });
+
+            // When start date changes, ensure end date is not before it
+            startDateInput.addEventListener('change', function() {
+                if (endDateInput.value && endDateInput.value < this.value) {
+                    endDateInput.value = this.value;
+                }
+                updateHiddenInputs();
+            });
+
+            // When start time changes, validate end time if dates are the same
+            startTimeInput.addEventListener('change', function() {
+                if (startDateInput.value === endDateInput.value) {
+                    if (endTimeInput.value && endTimeInput.value <= this.value) {
+                        endTimeInput.value = '';
+                    }
+                }
+                updateHiddenInputs();
+            });
+
+            // Initialize hidden inputs
+            updateHiddenInputs();
         });
     </script>
 </body>
