@@ -330,7 +330,7 @@ router.get("/addEvent", requireAuth, async (req, res) => {
 });
 
 router.post("/addEvent", requireAuth, async (req, res) => {
-  const { event_name, event_start, event_end, event_security_id } = req.body;
+  const { event_name, event_start, event_end, event_security_id, event_color } = req.body;
   const event_owner_id = req.session.user.user_id;
 
   // Basic validation
@@ -358,13 +358,20 @@ router.post("/addEvent", requireAuth, async (req, res) => {
     return res.redirect("/addEvent");
   }
 
+  // Validate color format if provided (should be hex color)
+  if (event_color && !/^#[0-9A-Fa-f]{6}$/.test(event_color)) {
+    req.session.error = "Invalid color format";
+    return res.redirect("/addEvent");
+  }
+
   try {
     const event = await db_events.createEvent({
       event_name,
       event_start,
       event_end,
       event_owner_id,
-      event_security_id: parseInt(event_security_id)
+      event_security_id: parseInt(event_security_id),
+      event_color: event_color || null
     });
 
     if (event) {

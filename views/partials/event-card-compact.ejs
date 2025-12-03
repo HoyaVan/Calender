@@ -1,14 +1,37 @@
 <!-- Compact Event Card Component (for week/month views) -->
-<div class="bg-blue-50 border border-blue-200 rounded p-1.5 hover:bg-blue-100 transition-colors <%= typeof opacityClass !== 'undefined' ? opacityClass : '' %>">
+<% 
+  // Default color if no event color is set
+  const defaultColor = '#3B82F6'; // blue-500
+  const eventColor = event.event_color || defaultColor;
+  
+  // Convert hex to RGB for opacity
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
+  
+  const rgb = hexToRgb(eventColor);
+  const bgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)` : 'rgba(59, 130, 246, 0.1)';
+  const borderColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)` : 'rgba(59, 130, 246, 0.3)';
+  const hoverBgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` : 'rgba(59, 130, 246, 0.2)';
+%>
+<div class="rounded p-1.5 transition-colors w-full max-w-full box-border <%= typeof opacityClass !== 'undefined' ? opacityClass : '' %>" 
+     style="background-color: <%= bgColor %>; border: 1px solid <%= borderColor %>; border-left: 3px solid <%= eventColor %>; min-width: 0;"
+     onmouseover="this.style.backgroundColor='<%= hoverBgColor %>'"
+     onmouseout="this.style.backgroundColor='<%= bgColor %>'">
   <div class="text-xs font-semibold text-gray-900 truncate">
     <%= event.event_name %>
   </div>
-  <div class="text-xs text-gray-600">
+  <div class="text-xs text-gray-600 truncate">
     <%= new Date(event.event_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) %>
   </div>
   <% if (event.security_level) { %>
     <div class="mt-1">
-      <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+      <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 truncate block">
         <%= event.security_level %>
       </span>
     </div>

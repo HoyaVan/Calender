@@ -1,5 +1,5 @@
 <!-- Month View -->
-<div class="space-y-4">
+<div class="space-y-4 mb-8">
   <!-- Month Navigation -->
   <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
     <%- include('navigation-arrows', {
@@ -23,19 +23,19 @@
 
     <!-- Calendar Days - Organized by weeks (rows) -->
     <% monthData.weeks.forEach((week, weekIndex) => { 
-      // Check if this is the last week and if it's empty (all days from next month with no events)
+      // Check if this is the last week and if it contains no days from the current month
       const isLastWeek = weekIndex === monthData.weeks.length - 1;
       let isEmptyWeek = false;
       if (isLastWeek) {
-        isEmptyWeek = week.every(day => !day.isCurrentMonth && (!day.events || day.events.length === 0));
+        isEmptyWeek = week.every(day => !day.isCurrentMonth);
       }
       
-      // Skip rendering if it's an empty last week
+      // Skip rendering if it's an empty last week (no days from current month)
       if (!isEmptyWeek) {
     %>
       <div class="flex flex-row border-b border-gray-200 <%= weekIndex === monthData.weeks.length - 1 ? 'last:border-b-0' : '' %>">
         <% week.forEach((day, dayIndex) => { %>
-          <div class="flex-1 border-r border-gray-200 last:border-r-0 <%= day.isCurrentMonth ? 'bg-white' : 'bg-gray-50' %> flex flex-col min-h-[120px]">
+          <div class="flex-1 border-r border-gray-200 last:border-r-0 <%= day.isCurrentMonth ? 'bg-white' : 'bg-gray-50' %> flex flex-col min-h-[120px] max-h-[200px]">
             <!-- Day Number -->
             <div class="p-2 border-b border-gray-100 flex-shrink-0">
               <span class="text-sm font-medium <%= day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400' %> <%= day.isToday ? 'bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center' : '' %>">
@@ -44,7 +44,7 @@
             </div>
             
             <!-- Day Events -->
-            <div class="p-1 space-y-1 min-h-[100px] flex-shrink-0" style="flex: 1 0 100px;">
+            <div class="p-1 space-y-1 overflow-y-auto flex-1" style="min-height: 0;">
               <% if (day.events && day.events.length > 0) { %>
                 <% day.events.forEach(event => { %>
                   <%- include('event-card-compact', { 

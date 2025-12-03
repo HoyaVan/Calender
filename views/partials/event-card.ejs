@@ -1,5 +1,28 @@
 <!-- Event Card Component -->
-<div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+<% 
+  // Default color if no event color is set
+  const defaultColor = '#3B82F6'; // blue-500
+  const eventColor = event.event_color || defaultColor;
+  
+  // Convert hex to RGB for opacity
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
+  
+  const rgb = hexToRgb(eventColor);
+  const bgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.05)` : 'rgba(59, 130, 246, 0.05)';
+  const borderColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` : 'rgba(59, 130, 246, 0.2)';
+  const hoverBgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)` : 'rgba(59, 130, 246, 0.1)';
+%>
+<div class="rounded-lg p-4 shadow-sm hover:shadow-md transition-all border-2" 
+     style="background-color: <%= bgColor %>; border-color: <%= borderColor %>; border-left: 4px solid <%= eventColor %>;"
+     onmouseover="this.style.backgroundColor='<%= hoverBgColor %>'"
+     onmouseout="this.style.backgroundColor='<%= bgColor %>'">
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div class="flex-1">
       <h3 class="text-lg font-semibold text-gray-900 mb-2">
