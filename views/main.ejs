@@ -33,21 +33,27 @@
             </button>
             
             <!-- Notification Dropdown -->
-            <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-              <div class="p-3 border-b border-gray-200 bg-gray-50">
-                <h3 class="text-sm font-semibold text-gray-900">Events Happening Now</h3>
+            <div id="notificationDropdown" class="hidden absolute right-0 mt-2 bg-white border border-gray-300 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto" style="width: 560px; min-width: 560px;">
+              <div class="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+                <div class="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h3 class="text-base font-bold text-gray-800">Event Now</h3>
+                </div>
               </div>
-              <div id="notificationContent" class="p-2">
+              <div id="notificationContent" class="p-3">
                 <!-- Loading state -->
-                <div id="notificationLoading" class="text-center py-4 text-gray-500 text-sm">
-                  Loading...
+                <div id="notificationLoading" class="text-center py-8 text-gray-500 text-sm">
+                  <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
+                  <p>Loading events...</p>
                 </div>
                 <!-- Empty state -->
-                <div id="notificationEmpty" class="hidden text-center py-8 text-gray-500 text-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div id="notificationEmpty" class="hidden text-center py-10 text-gray-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <p>No events happening right now</p>
+                  <p class="text-sm font-medium">No events happening right now</p>
                 </div>
                 <!-- Events list -->
                 <div id="notificationEvents" class="hidden space-y-2"></div>
@@ -433,37 +439,43 @@
 
       function createEventCard(event) {
         const card = document.createElement('div');
-        card.className = 'bg-white border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors cursor-pointer';
+        card.className = 'group bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-400 transition-all duration-200 cursor-pointer';
         
         const startTime = new Date(event.event_start);
         const endTime = new Date(event.event_end);
         
+        // Format date
+        const startDate = startTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const endDate = endTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        // Format times
+        const startTimeStr = startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const endTimeStr = endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        
         card.innerHTML = `
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex-1 min-w-0">
-              <h4 class="text-sm font-semibold text-gray-900 truncate mb-1">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <div class="h-2.5 w-2.5 bg-blue-500 rounded-full animate-pulse flex-shrink-0 mt-0.5"></div>
+              <h4 class="text-base font-bold text-gray-900">
                 ${escapeHtml(event.event_name)}
               </h4>
-              <div class="text-xs text-gray-600 space-y-1">
-                <div class="flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span>${startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
-                </div>
-                <div class="flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Ends: ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
-                </div>
-              </div>
             </div>
             ${event.security_level ? `
-              <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 whitespace-nowrap">
+              <span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-600 text-white whitespace-nowrap shadow-sm flex-shrink-0">
                 ${escapeHtml(event.security_level)}
               </span>
             ` : ''}
+          </div>
+          
+          <div class="space-y-2 pl-4.5">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-semibold text-blue-600 min-w-[45px]">Start:</span>
+              <span class="text-sm font-medium text-gray-700">${startDate} at ${startTimeStr}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-semibold text-purple-600 min-w-[45px]">End:</span>
+              <span class="text-sm font-medium text-gray-700">${endDate} at ${endTimeStr}</span>
+            </div>
           </div>
         `;
         
