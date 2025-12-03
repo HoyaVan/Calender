@@ -4,7 +4,6 @@ const db_users = include('database/util/users');
 const validation = include('auth/validation');
 require("dotenv").config();
 
-const expireTime = 1 * 60 * 60 * 1000;
 
 router.get("/login", (req, res) => {
   console.log("Login route accessed");
@@ -59,7 +58,7 @@ router.post('/submitLogin', async (req, res) => {
         email: user.email,
         avatar_url: user.avatar_url || process.env.DEFAULT_AVATAR_URL || null
       };
-      req.session.cookie.maxAge = expireTime;
+      // Cookie maxAge is set by session middleware in auth/session_check.js (24 hours)
 
       // >>> redirect to home page after successful login
       return res.redirect("/");
