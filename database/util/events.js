@@ -45,7 +45,8 @@ async function getAllEvents() {
         e.event_owner_id,
         e.event_security_id,
         u.username as owner_username,
-        es.security_level
+        es.security_level,
+        ec.color as event_color
       FROM event e
       LEFT JOIN user u ON e.event_owner_id = u.user_id
       LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
@@ -93,7 +94,8 @@ async function getEventsByUserId(userId) {
         e.event_owner_id,
         e.event_security_id,
         u.username as owner_username,
-        es.security_level
+        es.security_level,
+        ec.color as event_color
       FROM event e
       LEFT JOIN user u ON e.event_owner_id = u.user_id
       LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
@@ -154,7 +156,8 @@ async function getEventsByUserIdAndDate(userId, date) {
         e.event_owner_id,
         e.event_security_id,
         u.username as owner_username,
-        es.security_level
+        es.security_level,
+        ec.color as event_color
       FROM event e
       LEFT JOIN user u ON e.event_owner_id = u.user_id
       LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
@@ -217,7 +220,8 @@ async function getEventsByUserIdAndDateRange(userId, startDate, endDate) {
         e.event_owner_id,
         e.event_security_id,
         u.username as owner_username,
-        es.security_level
+        es.security_level,
+        ec.color as event_color
       FROM event e
       LEFT JOIN user u ON e.event_owner_id = u.user_id
       LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
@@ -338,7 +342,7 @@ async function createEvent(eventData) {
       throw new Error('MySQL connection is not available');
     }
 
-    const { event_name, event_start, event_end, event_owner_id, event_security_id } = eventData;
+    const { event_name, event_start, event_end, event_owner_id, event_security_id, event_color } = eventData;
 
     // Validate required fields
     if (!event_name || !event_start || !event_end || !event_owner_id || !event_security_id) {
@@ -352,41 +356,68 @@ async function createEvent(eventData) {
       throw new Error('Event end time must be after event start time');
     }
 
-    const query = `
-      INSERT INTO event (event_name, event_start, event_end, event_owner_id, event_security_id)
-      VALUES (?, ?, ?, ?, ?)
-    `;
-    
-    const [result] = await pool.execute(query, [
-      event_name.trim(),
-      event_start,
-      event_end,
-      event_owner_id,
-      event_security_id
-    ]);
+    // Start a transaction
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
 
-    if (result.insertId > 0) {
-      // Return the created event
-      const queryGetEvent = `
-        SELECT 
-          e.event_id,
-          e.event_name,
-          e.event_start,
-          e.event_end,
-          e.event_owner_id,
-          e.event_security_id,
-          u.username as owner_username,
-          es.security_level
-        FROM event e
-        LEFT JOIN user u ON e.event_owner_id = u.user_id
-        LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
-        WHERE e.event_id = ?
+    try {
+      // Insert the event
+      const query = `
+        INSERT INTO event (event_name, event_start, event_end, event_owner_id, event_security_id)
+        VALUES (?, ?, ?, ?, ?)
       `;
-      const [rows] = await pool.execute(queryGetEvent, [result.insertId]);
-      return rows.length > 0 ? rows[0] : null;
-    }
+      
+      const [result] = await connection.execute(query, [
+        event_name.trim(),
+        event_start,
+        event_end,
+        event_owner_id,
+        event_security_id
+      ]);
 
-    return null;
+      if (result.insertId > 0) {
+        // Insert the color if provided
+        if (event_color) {
+          const colorQuery = `
+            INSERT INTO event_color (color, event_id)
+            VALUES (?, ?)
+          `;
+          await connection.execute(colorQuery, [event_color, result.insertId]);
+        }
+
+        // Commit the transaction
+        await connection.commit();
+
+        // Return the created event
+        const queryGetEvent = `
+          SELECT 
+            e.event_id,
+            e.event_name,
+            e.event_start,
+            e.event_end,
+            e.event_owner_id,
+            e.event_security_id,
+            u.username as owner_username,
+            es.security_level,
+            ec.color as event_color
+          FROM event e
+          LEFT JOIN user u ON e.event_owner_id = u.user_id
+          LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
+          LEFT JOIN event_color ec ON e.event_id = ec.event_id
+          WHERE e.event_id = ?
+        `;
+        const [rows] = await pool.execute(queryGetEvent, [result.insertId]);
+        return rows.length > 0 ? rows[0] : null;
+      }
+
+      await connection.commit();
+      return null;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error('Error creating event:', error);
     throw error;
