@@ -115,18 +115,45 @@ router.get("/", async (req, res) => {
 
   // User is authenticated, show main page
   try {
-    const events = await db_events.getAllEvents(); // reveal events
+    const userId = req.session.user.user_id;
+    
+    // Get date from query parameter, default to today
+    let selectedDate = req.query.date;
+    if (!selectedDate) {
+      const today = new Date();
+      selectedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+    }
+    
+    // Validate date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(selectedDate)) {
+      const today = new Date();
+      selectedDate = today.toISOString().split('T')[0];
+    }
+    
+    const events = await db_events.getEventsByUserIdAndDate(userId, selectedDate);
     const loggedOut = req.query.loggedOut === 'true';
+    
+    // Check if selected date is today
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const isToday = selectedDate === todayStr;
 
     res.render("main", {
       events,
+      selectedDate,
+      isToday,
       error: req.session.error,
       success: loggedOut ? 'You have been logged out successfully.' : req.session.success
     });
   } catch (error) {
     console.error("Error loading main page:", error);
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
     res.render("main", {
       events: [],
+      selectedDate: todayStr,
+      isToday: true,
       error: "Failed to load events",
       success: null
     });
