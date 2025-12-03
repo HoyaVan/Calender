@@ -11,7 +11,7 @@
 <body class="min-h-full bg-gray-50 <%= locals.authenticated ? 'authenticated' : '' %>"
   data-authenticated="<%= locals.authenticated %>">
   <!-- Navigation Header -->
-  <%- include('partials/navigation', { currentPage: 'profile' }) %>
+  <%- include('partials/navigation') %>
 
   <main class="max-w-5xl mx-auto px-4 py-8">
     <!-- Profile Greeting -->
@@ -197,6 +197,8 @@
       }
     });
   </script>
+  <!-- JavaScript for notifications -->
+  <script src="/js/notifications.js"></script>
 </body>
 
 </html>
