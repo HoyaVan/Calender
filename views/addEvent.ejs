@@ -138,6 +138,63 @@
                         <p class="mt-2 text-xs text-gray-500">Select a color to help organize your events</p>
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Invite Friends
+                        </label>
+                        <% const friendsList = (typeof friends !== 'undefined' && friends && friends.length) ? friends : []; %>
+                        <% if (friendsList.length === 0) { %>
+                            <p class="text-sm text-gray-500 italic">You don't have any friends yet. Add friends from your profile to invite them to events.</p>
+                        <% } else { %>
+                            <div class="relative" id="friend-selector-container">
+                                <!-- Selected friends display -->
+                                <div id="selected-friends-display" class="min-h-[42px] border border-gray-300 rounded-md p-2 bg-white flex flex-wrap gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500" onclick="toggleDropdown()">
+                                    <div id="selected-tags" class="flex flex-wrap gap-2 flex-1">
+                                        <span id="placeholder-text" class="text-gray-500 text-sm self-center">Click to select friends...</span>
+                                    </div>
+                                    <svg id="dropdown-arrow" class="w-5 h-5 text-gray-400 self-center transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                                
+                                <!-- Dropdown menu -->
+                                <div id="friend-dropdown" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-64 overflow-hidden">
+                                    <!-- Search input -->
+                                    <div class="p-2 border-b border-gray-200 sticky top-0 bg-white">
+                                        <input type="text" 
+                                               id="friend-search" 
+                                               placeholder="Search friends..."
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                               onkeyup="filterFriends()">
+                                    </div>
+                                    
+                                    <!-- Friends list -->
+                                    <div id="friends-list" class="overflow-y-auto max-h-56">
+                                        <% friendsList.forEach(friend => { %>
+                                            <label class="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 friend-item" data-username="<%= friend.username.toLowerCase() %>" data-email="<%= friend.email.toLowerCase() %>">
+                                                <input type="checkbox" 
+                                                       name="invited_users" 
+                                                       value="<%= friend.user_id %>"
+                                                       class="friend-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                       onchange="updateSelectedFriends()">
+                                                <div class="ml-3 flex-1">
+                                                    <span class="text-sm font-medium text-gray-900"><%= friend.username %></span>
+                                                    <span class="text-xs text-gray-500 block"><%= friend.email %></span>
+                                                </div>
+                                            </label>
+                                        <% }); %>
+                                    </div>
+                                    
+                                    <!-- No results message -->
+                                    <div id="no-results" class="hidden p-4 text-center text-sm text-gray-500">
+                                        No friends found
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500">Search and select friends to invite to this event</p>
+                        <% } %>
+                    </div>
+
                     <div class="flex gap-4 pt-4">
                         <button type="submit"
                                 class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
@@ -299,6 +356,121 @@
 
             // Initialize hidden inputs
             updateHiddenInputs();
+        });
+
+        // Friend selector dropdown functionality
+        let friendsData = [];
+        <% if (friendsList && friendsList.length > 0) { %>
+        friendsData = [
+            <% friendsList.forEach((friend, index) => { %>
+            {
+                id: <%= friend.user_id %>,
+                username: <%- JSON.stringify(friend.username) %>,
+                email: <%- JSON.stringify(friend.email) %>
+            }<%= index < friendsList.length - 1 ? ',' : '' %>
+            <% }); %>
+        ];
+        <% } %>
+
+        function toggleDropdown() {
+            const dropdown = document.getElementById('friend-dropdown');
+            const arrow = document.getElementById('dropdown-arrow');
+            if (dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+                arrow.classList.add('transform', 'rotate-180');
+                document.getElementById('friend-search').focus();
+            } else {
+                dropdown.classList.add('hidden');
+                arrow.classList.remove('transform', 'rotate-180');
+            }
+        }
+
+        function filterFriends() {
+            const searchTerm = document.getElementById('friend-search').value.toLowerCase();
+            const friendItems = document.querySelectorAll('.friend-item');
+            const noResults = document.getElementById('no-results');
+            let visibleCount = 0;
+
+            friendItems.forEach(item => {
+                const username = item.getAttribute('data-username');
+                const email = item.getAttribute('data-email');
+                const matches = username.includes(searchTerm) || email.includes(searchTerm);
+                
+                if (matches) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Show/hide no results message
+            if (visibleCount === 0 && searchTerm.length > 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+        }
+
+        function updateSelectedFriends() {
+            const checkboxes = document.querySelectorAll('.friend-checkbox:checked');
+            const selectedTags = document.getElementById('selected-tags');
+            const placeholder = document.getElementById('placeholder-text');
+            
+            selectedTags.innerHTML = '';
+            
+            if (checkboxes.length === 0) {
+                placeholder.style.display = 'block';
+            } else {
+                placeholder.style.display = 'none';
+                
+                checkboxes.forEach(checkbox => {
+                    const friendId = checkbox.value;
+                    const friend = friendsData.find(f => f.id == friendId);
+                    
+                    if (friend) {
+                        const tag = document.createElement('span');
+                        tag.className = 'inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm';
+                        tag.innerHTML = `
+                            ${friend.username}
+                            <button type="button" 
+                                    onclick="removeFriend(${friend.id}); event.stopPropagation();" 
+                                    class="ml-1 text-blue-600 hover:text-blue-800 focus:outline-none">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                        `;
+                        selectedTags.appendChild(tag);
+                    }
+                });
+            }
+        }
+
+        function removeFriend(friendId) {
+            const checkbox = document.querySelector(`.friend-checkbox[value="${friendId}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+                updateSelectedFriends();
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const container = document.getElementById('friend-selector-container');
+            if (container && !container.contains(event.target)) {
+                const dropdown = document.getElementById('friend-dropdown');
+                const arrow = document.getElementById('dropdown-arrow');
+                if (!dropdown.classList.contains('hidden')) {
+                    dropdown.classList.add('hidden');
+                    arrow.classList.remove('transform', 'rotate-180');
+                }
+            }
+        });
+
+        // Prevent dropdown from closing when clicking inside it
+        document.getElementById('friend-dropdown')?.addEventListener('click', function(event) {
+            event.stopPropagation();
         });
     </script>
     <!-- JavaScript for notifications -->

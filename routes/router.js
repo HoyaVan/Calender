@@ -9,6 +9,7 @@ const friendsRoutes = include('routes/friends');
 
 // Import database (using events for now, can be updated later)
 const db_events = include('database/util/events');
+const db_friends = include('database/util/friends');
 
 // Expose common locals for all views
 router.use((req, res, next) => {
@@ -309,7 +310,9 @@ router.get("/", async (req, res) => {
 // Event creation routes - require authentication
 router.get("/addEvent", requireAuth, async (req, res) => {
   try {
+    const userId = req.session.user.user_id;
     const securityLevels = await db_events.getAllSecurityLevels();
+    const friends = await db_friends.getFriends(userId);
     const error = req.session.error;
     const success = req.session.success;
     req.session.error = null;
@@ -317,6 +320,7 @@ router.get("/addEvent", requireAuth, async (req, res) => {
 
     res.render("addEvent", {
       securityLevels,
+      friends,
       error,
       success
     });
@@ -324,14 +328,15 @@ router.get("/addEvent", requireAuth, async (req, res) => {
     console.error("Error loading add event page:", error);
     res.render("addEvent", {
       securityLevels: [],
-      error: "Failed to load security levels",
+      friends: [],
+      error: "Failed to load page data",
       success: null
     });
   }
 });
 
 router.post("/addEvent", requireAuth, async (req, res) => {
-  const { event_name, event_start, event_end, event_security_id, event_color } = req.body;
+  const { event_name, event_start, event_end, event_security_id, event_color, invited_users } = req.body;
   const event_owner_id = req.session.user.user_id;
 
   // Basic validation
@@ -365,6 +370,19 @@ router.post("/addEvent", requireAuth, async (req, res) => {
     return res.redirect("/addEvent");
   }
 
+  // Process invited users (can be array or single value)
+  let invitedUserIds = [];
+  if (invited_users) {
+    if (Array.isArray(invited_users)) {
+      invitedUserIds = invited_users.map(id => parseInt(id)).filter(id => !isNaN(id) && id !== event_owner_id);
+    } else {
+      const userId = parseInt(invited_users);
+      if (!isNaN(userId) && userId !== event_owner_id) {
+        invitedUserIds = [userId];
+      }
+    }
+  }
+
   try {
     const event = await db_events.createEvent({
       event_name,
@@ -372,7 +390,8 @@ router.post("/addEvent", requireAuth, async (req, res) => {
       event_end,
       event_owner_id,
       event_security_id: parseInt(event_security_id),
-      event_color: event_color || null
+      event_color: event_color || null,
+      invited_user_ids: invitedUserIds
     });
 
     if (event) {

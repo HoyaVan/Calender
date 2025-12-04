@@ -335,7 +335,8 @@ async function getCurrentEvents(userId) {
 
 /**
  * Create a new event
- * @param {Object} eventData - { event_name, event_start, event_end, event_owner_id, event_security_id }
+ * @param {Object} eventData - { event_name, event_start, event_end, event_owner_id, event_security_id, event_color, invited_user_ids }
+ * @param {Array<number>} eventData.invited_user_ids - Optional array of user IDs to invite to the event
  * @returns {Promise<Object|null>} Created event object or null if failed
  */
 async function createEvent(eventData) {
@@ -346,7 +347,7 @@ async function createEvent(eventData) {
       throw new Error('MySQL connection is not available');
     }
 
-    const { event_name, event_start, event_end, event_owner_id, event_security_id, event_color } = eventData;
+    const { event_name, event_start, event_end, event_owner_id, event_security_id, event_color, invited_user_ids } = eventData;
 
     // Validate required fields
     if (!event_name || !event_start || !event_end || !event_owner_id || !event_security_id) {
@@ -380,13 +381,37 @@ async function createEvent(eventData) {
       ]);
 
       if (result.insertId > 0) {
+        const eventId = result.insertId;
+
         // Insert the color if provided
         if (event_color) {
           const colorQuery = `
             INSERT INTO event_color (color, event_id)
             VALUES (?, ?)
           `;
-          await connection.execute(colorQuery, [event_color, result.insertId]);
+          await connection.execute(colorQuery, [event_color, eventId]);
+        }
+
+        // Insert invited users into event_user table if provided
+        if (invited_user_ids && Array.isArray(invited_user_ids) && invited_user_ids.length > 0) {
+          // Validate that all invited users exist and are friends
+          const placeholders = invited_user_ids.map(() => '?').join(',');
+          const [validUsers] = await connection.execute(
+            `SELECT user_id FROM user WHERE user_id IN (${placeholders})`,
+            invited_user_ids
+          );
+          const validUserIds = validUsers.map(u => u.user_id);
+
+          // Insert each invited user
+          for (const userId of validUserIds) {
+            // Don't add the owner as a participant
+            if (userId !== event_owner_id) {
+              await connection.execute(
+                `INSERT INTO event_user (user_id, event_id) VALUES (?, ?)`,
+                [userId, eventId]
+              );
+            }
+          }
         }
 
         // Commit the transaction
