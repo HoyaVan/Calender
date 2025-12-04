@@ -728,11 +728,35 @@ async function permanentlyDeleteEvent(eventId, userId) {
       throw new Error('Event not found, you do not have permission, or it is not deleted');
     }
 
-    // Permanently delete (CASCADE will also remove from deletedEvent table)
-    const deleteQuery = `DELETE FROM event WHERE event_id = ? AND event_owner_id = ?`;
-    const [result] = await pool.execute(deleteQuery, [eventId, userId]);
-    
-    return result.affectedRows > 0;
+    // Start transaction to ensure atomicity
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // Delete all event_user records that reference this event
+      const deleteEventUsersQuery = `DELETE FROM event_user WHERE event_id = ?`;
+      await connection.execute(deleteEventUsersQuery, [eventId]);
+
+      // Delete all event_color records that reference this event
+      const deleteEventColorsQuery = `DELETE FROM event_color WHERE event_id = ?`;
+      await connection.execute(deleteEventColorsQuery, [eventId]);
+
+      // Delete from deletedEvent table
+      const deleteDeletedQuery = `DELETE FROM deletedEvent WHERE event_id = ?`;
+      await connection.execute(deleteDeletedQuery, [eventId]);
+
+      // Now permanently delete the event
+      const deleteQuery = `DELETE FROM event WHERE event_id = ? AND event_owner_id = ?`;
+      const [result] = await connection.execute(deleteQuery, [eventId, userId]);
+      
+      await connection.commit();
+      return result.affectedRows > 0;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error('Error permanently deleting event:', error);
     throw error;
@@ -756,17 +780,52 @@ async function cleanupOldDeletedEvents() {
       return 0;
     }
 
-    // Delete events that were deleted more than 7 days ago
-    // CASCADE will automatically remove from deletedEvent table
-    const deleteQuery = `
-      DELETE e FROM event e
+    // Get all event IDs that need to be permanently deleted
+    const getEventIdsQuery = `
+      SELECT e.event_id
+      FROM event e
       INNER JOIN deletedEvent de ON e.event_id = de.event_id
       WHERE e.event_security_id = ?
         AND de.deleted_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
     `;
-    const [result] = await pool.execute(deleteQuery, [deletedId]);
+    const [eventRows] = await pool.execute(getEventIdsQuery, [deletedId]);
     
-    return result.affectedRows;
+    if (eventRows.length === 0) {
+      return 0;
+    }
+
+    const eventIds = eventRows.map(row => row.event_id);
+    const placeholders = eventIds.map(() => '?').join(',');
+
+    // Start transaction to ensure atomicity
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // Delete all event_user records that reference these events
+      const deleteEventUsersQuery = `DELETE FROM event_user WHERE event_id IN (${placeholders})`;
+      await connection.execute(deleteEventUsersQuery, eventIds);
+
+      // Delete all event_color records that reference these events
+      const deleteEventColorsQuery = `DELETE FROM event_color WHERE event_id IN (${placeholders})`;
+      await connection.execute(deleteEventColorsQuery, eventIds);
+
+      // Delete from deletedEvent table
+      const deleteDeletedQuery = `DELETE FROM deletedEvent WHERE event_id IN (${placeholders})`;
+      await connection.execute(deleteDeletedQuery, eventIds);
+
+      // Now permanently delete the events
+      const deleteQuery = `DELETE FROM event WHERE event_id IN (${placeholders})`;
+      const [result] = await connection.execute(deleteQuery, eventIds);
+      
+      await connection.commit();
+      return result.affectedRows;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error('Error cleaning up old deleted events:', error);
     return 0;
@@ -851,7 +910,7 @@ async function getFriendPublicEventsByDate(userId, date, selectedFriendIds = nul
 
     // Get public events from friends where the event overlaps with the selected day
     const query = `
-      SELECT 
+      SELECT DISTINCT
         e.event_id,
         e.event_name,
         e.event_start,
@@ -945,7 +1004,7 @@ async function getFriendPublicEventsByDateRange(userId, startDate, endDate, sele
 
     // Get public events from friends where the event overlaps with the date range
     const query = `
-      SELECT 
+      SELECT DISTINCT
         e.event_id,
         e.event_name,
         e.event_start,

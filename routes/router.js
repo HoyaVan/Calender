@@ -358,6 +358,28 @@ router.get("/", async (req, res) => {
       }
     }
 
+    // Deduplicate events by event_id (in case an event appears in both user events and friend events)
+    const eventsMap = new Map();
+    for (const event of events) {
+      if (!eventsMap.has(event.event_id)) {
+        eventsMap.set(event.event_id, event);
+      } else {
+        // If event already exists, prefer the one that's not a friend event (user's own event or invited event takes precedence)
+        const existingEvent = eventsMap.get(event.event_id);
+        if (event.isFriendEvent && !existingEvent.isFriendEvent) {
+          // Keep existing (user event), skip friend event duplicate
+          continue;
+        } else if (!event.isFriendEvent && existingEvent.isFriendEvent) {
+          // Replace friend event with user event
+          eventsMap.set(event.event_id, event);
+        } else {
+          // Both are same type, keep existing
+          continue;
+        }
+      }
+    }
+    events = Array.from(eventsMap.values());
+
     // Fetch invited users for each event
     for (const event of events) {
       event.invitedUsers = await db_events.getInvitedUsersForEvent(event.event_id);
@@ -373,6 +395,7 @@ router.get("/", async (req, res) => {
       showFriendEvents,
       friends,
       selectedFriendIds,
+      currentUserId: userId,
       error: req.session.error,
       success: loggedOut ? 'You have been logged out successfully.' : req.session.success || req.query.success,
       query: req.query
@@ -391,6 +414,7 @@ router.get("/", async (req, res) => {
       showFriendEvents: false,
       friends: [],
       selectedFriendIds: null,
+      currentUserId: req.session.user?.user_id || null,
       error: "Failed to load events",
       success: null
     });

@@ -18,7 +18,7 @@
   <% if (events && events.length > 0) { %>
     <div class="space-y-3">
       <% events.forEach(event => { %>
-        <%- include('event-card', { event: event }) %>
+        <%- include('event-card', { event: event, currentUserId: typeof currentUserId !== 'undefined' ? currentUserId : null }) %>
       <% }); %>
     </div>
   <% } else { %>
