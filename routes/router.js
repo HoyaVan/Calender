@@ -115,24 +115,35 @@ router.get("/", async (req, res) => {
   }
 
   // User is authenticated, show main page
+  
+  // Helper function to get today's date in Vancouver timezone
+  const getTodayInVancouver = () => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Vancouver',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    return formatter.format(now); // Returns YYYY-MM-DD format
+  };
+  
   try {
     const userId = req.session.user.user_id;
     
     // Get view type from query parameter, default to 'day'
     const view = req.query.view || 'day';
     
-    // Get date from query parameter, default to today
+    // Get date from query parameter, default to today (in Vancouver timezone)
     let selectedDate = req.query.date;
     if (!selectedDate) {
-      const today = new Date();
-      selectedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+      selectedDate = getTodayInVancouver();
     }
     
     // Validate date format
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(selectedDate)) {
-      const today = new Date();
-      selectedDate = today.toISOString().split('T')[0];
+      selectedDate = getTodayInVancouver();
     }
     
     const loggedOut = req.query.loggedOut === 'true';
@@ -176,9 +187,8 @@ router.get("/", async (req, res) => {
       }
     }
     
-    // Check if selected date is today (for day view) or current week (for week view)
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    // Check if selected date is today (in Vancouver timezone)
+    const todayStr = getTodayInVancouver();
     let isToday = selectedDate === todayStr;
     
     let events = [];
@@ -369,8 +379,8 @@ router.get("/", async (req, res) => {
     });
   } catch (error) {
     console.error("Error loading main page:", error);
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    // Get today's date in Vancouver timezone (function already declared above)
+    const todayStr = getTodayInVancouver();
     res.render("main", {
       events: [],
       selectedDate: todayStr,

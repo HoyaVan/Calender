@@ -296,45 +296,62 @@ async function getCurrentEvents(userId) {
       return [];
     }
 
-    // Use MySQL's NOW() function to get current server time
-    // This ensures accurate time comparison regardless of timezone
+    // Use MySQL's NOW() function with Vancouver timezone
+    // Set timezone for this query to ensure accurate time comparison
     // Get events where:
     // 1. User is the owner (event_owner_id = userId)
     // 2. OR user is a participant (exists in event_user table)
-    // AND current time (NOW()) is BETWEEN event_start and event_end (inclusive)
+    // AND current time (NOW() in Vancouver timezone) is BETWEEN event_start and event_end (inclusive)
     // This means: event_start <= NOW() <= event_end
     // Using EXISTS subquery to avoid duplicate rows from JOINs
-    const query = `
-      SELECT 
-        e.event_id,
-        e.event_name,
-        e.event_start,
-        e.event_end,
-        e.event_owner_id,
-        e.event_security_id,
-        u.username as owner_username,
-        es.security_level
-      FROM event e
-      LEFT JOIN user u ON e.event_owner_id = u.user_id
-      LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
-      WHERE (
-        e.event_owner_id = ? 
-        OR EXISTS (
-          SELECT 1 
-          FROM event_user eu 
-          WHERE eu.event_id = e.event_id 
-          AND eu.user_id = ?
+    const connection = await pool.getConnection();
+    try {
+      // Set timezone to Vancouver for this connection
+      try {
+        await connection.query("SET time_zone = 'America/Vancouver'");
+      } catch (tzError) {
+        // Fallback to PST offset if named timezone not available
+        try {
+          await connection.query("SET time_zone = '-08:00'");
+        } catch (offsetError) {
+          // Continue with server default if timezone setting fails
+        }
+      }
+      
+      const query = `
+        SELECT 
+          e.event_id,
+          e.event_name,
+          e.event_start,
+          e.event_end,
+          e.event_owner_id,
+          e.event_security_id,
+          u.username as owner_username,
+          es.security_level
+        FROM event e
+        LEFT JOIN user u ON e.event_owner_id = u.user_id
+        LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
+        WHERE (
+          e.event_owner_id = ? 
+          OR EXISTS (
+            SELECT 1 
+            FROM event_user eu 
+            WHERE eu.event_id = e.event_id 
+            AND eu.user_id = ?
+          )
         )
-      )
-      AND e.event_start <= NOW()
-      AND e.event_end >= NOW()
-      AND es.security_level != 'deleted'
-      AND NOT EXISTS (SELECT 1 FROM deletedEvent de WHERE de.event_id = e.event_id)
-      ORDER BY e.event_start ASC
-    `;
-    
-    const [rows] = await pool.execute(query, [userId, userId]);
-    return rows;
+        AND e.event_start <= NOW()
+        AND e.event_end >= NOW()
+        AND es.security_level != 'deleted'
+        AND NOT EXISTS (SELECT 1 FROM deletedEvent de WHERE de.event_id = e.event_id)
+        ORDER BY e.event_start ASC
+      `;
+      
+      const [rows] = await connection.execute(query, [userId, userId]);
+      return rows;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error('Error getting current events:', error);
     return [];

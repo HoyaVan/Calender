@@ -21,13 +21,32 @@ const pool = mysql.createPool(MYSQL_HOST, {
   connectionLimit: 10,
   queueLimit: 0,
   enableKeepAlive: true,
-  keepAliveInitialDelay: 0
+  keepAliveInitialDelay: 0,
+  // Set timezone to Vancouver (Pacific Time) for all new connections
+  // This ensures NOW() and other time functions use Vancouver timezone
+  afterCreate: async (connection) => {
+    try {
+      // Try named timezone first (handles DST automatically)
+      await connection.query("SET time_zone = 'America/Vancouver'");
+    } catch (error) {
+      // If named timezone fails (timezone tables not loaded), use offset
+      // PST = UTC-8, PDT = UTC-7 (Vancouver observes DST)
+      // Using PST offset as fallback (doesn't auto-handle DST)
+      try {
+        await connection.query("SET time_zone = '-08:00'");
+        console.warn("Using PST offset (-08:00) - DST changes won't be automatic");
+      } catch (offsetError) {
+        console.warn("Could not set timezone on connection:", offsetError.message);
+      }
+    }
+  }
 });
 
 // Test MySQL connection
 async function connectToMySQL() {
   try {
     const connection = await pool.getConnection();
+    // Timezone is automatically set by afterCreate callback
     await connection.ping();
     connection.release();
     console.log("Successfully connected to MySQL!");
