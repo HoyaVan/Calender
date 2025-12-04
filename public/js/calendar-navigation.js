@@ -14,7 +14,13 @@ function changeDay(days) {
   const date = new Date(window.calendarState.currentDate + 'T12:00:00');
   date.setDate(date.getDate() + days);
   const newDate = date.toISOString().split('T')[0];
-  window.location.href = `/?date=${newDate}&view=${window.calendarState.currentView}`;
+  const currentUrl = new URL(window.location.href);
+  const showFriendEvents = currentUrl.searchParams.get('showFriendEvents');
+  const selectedFriends = currentUrl.searchParams.get('selectedFriends');
+  let url = `/?date=${newDate}&view=${window.calendarState.currentView}`;
+  if (showFriendEvents) url += `&showFriendEvents=${showFriendEvents}`;
+  if (selectedFriends) url += `&selectedFriends=${selectedFriends}`;
+  window.location.href = url;
 }
 
 // Navigate to a different week
@@ -22,7 +28,13 @@ function changeWeek(weeks) {
   const date = new Date(window.calendarState.currentDate + 'T12:00:00');
   date.setDate(date.getDate() + (weeks * 7));
   const newDate = date.toISOString().split('T')[0];
-  window.location.href = `/?date=${newDate}&view=week`;
+  const currentUrl = new URL(window.location.href);
+  const showFriendEvents = currentUrl.searchParams.get('showFriendEvents');
+  const selectedFriends = currentUrl.searchParams.get('selectedFriends');
+  let url = `/?date=${newDate}&view=week`;
+  if (showFriendEvents) url += `&showFriendEvents=${showFriendEvents}`;
+  if (selectedFriends) url += `&selectedFriends=${selectedFriends}`;
+  window.location.href = url;
 }
 
 // Navigate to a different month
@@ -30,26 +42,56 @@ function changeMonth(months) {
   const date = new Date(window.calendarState.currentDate + 'T12:00:00');
   date.setMonth(date.getMonth() + months);
   const newDate = date.toISOString().split('T')[0];
-  window.location.href = `/?date=${newDate}&view=month`;
+  const currentUrl = new URL(window.location.href);
+  const showFriendEvents = currentUrl.searchParams.get('showFriendEvents');
+  const selectedFriends = currentUrl.searchParams.get('selectedFriends');
+  let url = `/?date=${newDate}&view=month`;
+  if (showFriendEvents) url += `&showFriendEvents=${showFriendEvents}`;
+  if (selectedFriends) url += `&selectedFriends=${selectedFriends}`;
+  window.location.href = url;
 }
 
 // Navigate to today (current day/week/month)
 function goToToday() {
-  window.location.href = `/?view=${window.calendarState.currentView}`;
+  const currentUrl = new URL(window.location.href);
+  const showFriendEvents = currentUrl.searchParams.get('showFriendEvents');
+  const selectedFriends = currentUrl.searchParams.get('selectedFriends');
+  let url = `/?view=${window.calendarState.currentView}`;
+  if (showFriendEvents) url += `&showFriendEvents=${showFriendEvents}`;
+  if (selectedFriends) url += `&selectedFriends=${selectedFriends}`;
+  window.location.href = url;
 }
 
 // Switch to day view
 function switchToDayView() {
-  window.location.href = `/?date=${window.calendarState.currentDate}&view=day`;
+  const currentUrl = new URL(window.location.href);
+  const showFriendEvents = currentUrl.searchParams.get('showFriendEvents');
+  const selectedFriends = currentUrl.searchParams.get('selectedFriends');
+  let url = `/?date=${window.calendarState.currentDate}&view=day`;
+  if (showFriendEvents) url += `&showFriendEvents=${showFriendEvents}`;
+  if (selectedFriends) url += `&selectedFriends=${selectedFriends}`;
+  window.location.href = url;
 }
 
 // Switch to week view
 function switchToWeekView() {
-  window.location.href = `/?date=${window.calendarState.currentDate}&view=week`;
+  const currentUrl = new URL(window.location.href);
+  const showFriendEvents = currentUrl.searchParams.get('showFriendEvents');
+  const selectedFriends = currentUrl.searchParams.get('selectedFriends');
+  let url = `/?date=${window.calendarState.currentDate}&view=week`;
+  if (showFriendEvents) url += `&showFriendEvents=${showFriendEvents}`;
+  if (selectedFriends) url += `&selectedFriends=${selectedFriends}`;
+  window.location.href = url;
 }
 
 // Switch to month view
 function switchToMonthView() {
-  window.location.href = `/?date=${window.calendarState.currentDate}&view=month`;
+  const currentUrl = new URL(window.location.href);
+  const showFriendEvents = currentUrl.searchParams.get('showFriendEvents');
+  const selectedFriends = currentUrl.searchParams.get('selectedFriends');
+  let url = `/?date=${window.calendarState.currentDate}&view=month`;
+  if (showFriendEvents) url += `&showFriendEvents=${showFriendEvents}`;
+  if (selectedFriends) url += `&selectedFriends=${selectedFriends}`;
+  window.location.href = url;
 }
 

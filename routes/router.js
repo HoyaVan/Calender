@@ -9,6 +9,7 @@ const friendsRoutes = include('routes/friends');
 
 // Import database (using events for now, can be updated later)
 const db_events = include('database/util/events');
+const db_friends = include('database/util/friends');
 
 // Expose common locals for all views
 router.use((req, res, next) => {
@@ -136,6 +137,45 @@ router.get("/", async (req, res) => {
     
     const loggedOut = req.query.loggedOut === 'true';
     
+    // Check if friend events should be shown
+    const showFriendEvents = req.query.showFriendEvents === 'true';
+    
+    // Get selected friend IDs from query parameter (comma-separated)
+    // null = show all (default), [] = show none, [1,2,3] = show specific friends
+    let selectedFriendIds = null;
+    if (showFriendEvents) {
+      if (req.query.selectedFriends !== undefined) {
+        // Parameter exists - parse it
+        if (req.query.selectedFriends === '' || req.query.selectedFriends === null) {
+          // Empty string means show none
+          selectedFriendIds = [];
+        } else {
+          const friendIdsStr = req.query.selectedFriends;
+          if (friendIdsStr && friendIdsStr.trim() !== '') {
+            selectedFriendIds = friendIdsStr.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id) && id > 0);
+            // If all invalid, treat as empty (show none)
+            if (selectedFriendIds.length === 0) {
+              selectedFriendIds = [];
+            }
+          } else {
+            selectedFriendIds = [];
+          }
+        }
+      }
+      // If selectedFriends parameter doesn't exist, selectedFriendIds stays null (show all)
+    }
+    
+    // Get friends list if friend events are enabled
+    let friends = [];
+    if (showFriendEvents) {
+      try {
+        friends = await db_friends.getFriends(userId);
+      } catch (error) {
+        console.error('Error fetching friends:', error);
+        friends = [];
+      }
+    }
+    
     // Check if selected date is today (for day view) or current week (for week view)
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
@@ -172,6 +212,16 @@ router.get("/", async (req, res) => {
       
       // Get all events for the month view range
       events = await db_events.getEventsByUserIdAndDateRange(userId, calendarStartStr, calendarEndStr);
+      
+      // Get friend public events if enabled
+      if (showFriendEvents) {
+        const friendEvents = await db_events.getFriendPublicEventsByDateRange(userId, calendarStartStr, calendarEndStr, selectedFriendIds);
+        // Mark friend events and merge with user events
+        friendEvents.forEach(event => {
+          event.isFriendEvent = true;
+        });
+        events = [...events, ...friendEvents];
+      }
       
       // Check if this month contains today
       const todayDate = new Date(todayStr + 'T12:00:00');
@@ -245,6 +295,16 @@ router.get("/", async (req, res) => {
       // Get all events for the week
       events = await db_events.getEventsByUserIdAndDateRange(userId, sundayStr, saturdayStr);
       
+      // Get friend public events if enabled
+      if (showFriendEvents) {
+        const friendEvents = await db_events.getFriendPublicEventsByDateRange(userId, sundayStr, saturdayStr, selectedFriendIds);
+        // Mark friend events and merge with user events
+        friendEvents.forEach(event => {
+          event.isFriendEvent = true;
+        });
+        events = [...events, ...friendEvents];
+      }
+      
       // Organize events by day
       const weekDays = [];
       for (let i = 0; i < 7; i++) {
@@ -276,6 +336,16 @@ router.get("/", async (req, res) => {
     } else {
       // Day view
       events = await db_events.getEventsByUserIdAndDate(userId, selectedDate);
+      
+      // Get friend public events if enabled
+      if (showFriendEvents) {
+        const friendEvents = await db_events.getFriendPublicEventsByDate(userId, selectedDate, selectedFriendIds);
+        // Mark friend events and merge with user events
+        friendEvents.forEach(event => {
+          event.isFriendEvent = true;
+        });
+        events = [...events, ...friendEvents];
+      }
     }
 
     res.render("main", {
@@ -285,6 +355,9 @@ router.get("/", async (req, res) => {
       view,
       weekData,
       monthData,
+      showFriendEvents,
+      friends,
+      selectedFriendIds,
       error: req.session.error,
       success: loggedOut ? 'You have been logged out successfully.' : req.session.success || req.query.success,
       query: req.query
@@ -300,6 +373,9 @@ router.get("/", async (req, res) => {
       view: 'day',
       weekData: null,
       monthData: null,
+      showFriendEvents: false,
+      friends: [],
+      selectedFriendIds: null,
       error: "Failed to load events",
       success: null
     });

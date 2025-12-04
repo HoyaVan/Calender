@@ -19,12 +19,16 @@
   const borderColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)` : 'rgba(59, 130, 246, 0.3)';
   const hoverBgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` : 'rgba(59, 130, 246, 0.2)';
 %>
-<div class="rounded p-1.5 transition-colors w-full max-w-full box-border <%= typeof opacityClass !== 'undefined' ? opacityClass : '' %>" 
+<div class="rounded p-1.5 transition-colors w-full max-w-full box-border <%= event.isFriendEvent ? 'friend-event' : 'user-event' %> <%= typeof opacityClass !== 'undefined' ? opacityClass : '' %>" 
      style="background-color: <%= bgColor %>; border: 1px solid <%= borderColor %>; border-left: 3px solid <%= eventColor %>; min-width: 0;"
+     <% if (event.isFriendEvent) { %>data-friend-event="true" data-friend-owner-id="<%= event.event_owner_id %>"<% } %>
      onmouseover="this.style.backgroundColor='<%= hoverBgColor %>'"
      onmouseout="this.style.backgroundColor='<%= bgColor %>'">
   <div class="text-xs font-semibold text-gray-900 truncate">
     <%= event.event_name %>
+    <% if (event.isFriendEvent && event.owner_username) { %>
+      <span class="text-xs font-normal text-gray-500"> by <%= event.owner_username %></span>
+    <% } %>
   </div>
   <div class="text-xs text-gray-600 truncate">
     <%= new Date(event.event_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) %>
