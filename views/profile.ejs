@@ -25,12 +25,12 @@
     </div>
     <!-- Success/Error Messages -->
     <% if (typeof success !== 'undefined' && success) { %>
-      <div class="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+      <div id="success-message" class="fixed top-4 right-4 z-50 px-4 py-3 bg-green-100 border border-green-400 text-green-700 rounded shadow-lg max-w-md" role="alert">
         <span class="block sm:inline"><%= success %></span>
       </div>
     <% } %>
     <% if (typeof error !== 'undefined' && error) { %>
-      <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+      <div id="error-message" class="fixed top-4 right-4 z-50 px-4 py-3 bg-red-100 border border-red-400 text-red-700 rounded shadow-lg max-w-md" role="alert">
         <span class="block sm:inline"><%= error %></span>
       </div>
     <% } %>
@@ -141,6 +141,43 @@
   <%- include('templates/footer') %>
 
   <script>
+    // Hide success message
+    function hideSuccessMessage() {
+      const successMsg = document.getElementById('success-message');
+      if (successMsg) {
+        successMsg.style.transition = 'opacity 0.3s ease-out';
+        successMsg.style.opacity = '0';
+        setTimeout(() => {
+          successMsg.remove();
+        }, 300);
+      }
+    }
+
+    // Hide error message
+    function hideErrorMessage() {
+      const errorMsg = document.getElementById('error-message');
+      if (errorMsg) {
+        errorMsg.style.transition = 'opacity 0.3s ease-out';
+        errorMsg.style.opacity = '0';
+        setTimeout(() => {
+          errorMsg.remove();
+        }, 300);
+      }
+    }
+
+    // Auto-hide messages after 2.5 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+      const successMsg = document.getElementById('success-message');
+      if (successMsg) {
+        setTimeout(hideSuccessMessage, 2500);
+      }
+
+      const errorMsg = document.getElementById('error-message');
+      if (errorMsg) {
+        setTimeout(hideErrorMessage, 2500);
+      }
+    });
+
     // Handle user search
     document.getElementById('searchForm').addEventListener('submit', async (e) => {
       e.preventDefault();

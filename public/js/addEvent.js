@@ -8,11 +8,11 @@ const friendsData = window.friendsData || [];
 function hideErrorMessage() {
     const errorMsg = document.getElementById('error-message');
     if (errorMsg) {
-        errorMsg.style.transition = 'opacity 0.5s ease-out';
+        errorMsg.style.transition = 'opacity 0.3s ease-out';
         errorMsg.style.opacity = '0';
         setTimeout(() => {
             errorMsg.remove();
-        }, 500);
+        }, 300);
     }
 }
 
@@ -20,11 +20,11 @@ function hideErrorMessage() {
 function hideSuccessMessage() {
     const successMsg = document.getElementById('success-message');
     if (successMsg) {
-        successMsg.style.transition = 'opacity 0.5s ease-out';
+        successMsg.style.transition = 'opacity 0.3s ease-out';
         successMsg.style.opacity = '0';
         setTimeout(() => {
             successMsg.remove();
-        }, 500);
+        }, 300);
     }
 }
 
@@ -106,33 +106,56 @@ function updateSelectedFriends() {
     const selectedTags = document.getElementById('selected-tags');
     const placeholder = document.getElementById('placeholder-text');
     
-    if (!selectedTags || !placeholder) return;
+    if (!selectedTags) return;
     
-    selectedTags.innerHTML = '';
+    // Clear existing tags but keep placeholder structure
+    const existingTags = selectedTags.querySelectorAll('span:not(#placeholder-text)');
+    existingTags.forEach(tag => tag.remove());
     
     if (checkboxes.length === 0) {
-        placeholder.style.display = 'block';
+        // Show placeholder if no friends selected
+        if (placeholder) {
+            placeholder.style.display = 'block';
+        } else {
+            // Recreate placeholder if it was removed
+            const placeholderSpan = document.createElement('span');
+            placeholderSpan.id = 'placeholder-text';
+            placeholderSpan.className = 'text-gray-500 text-sm self-center';
+            placeholderSpan.textContent = 'Click to select friends...';
+            selectedTags.appendChild(placeholderSpan);
+        }
     } else {
-        placeholder.style.display = 'none';
+        // Hide placeholder if friends are selected
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
         
         checkboxes.forEach(checkbox => {
             const friendId = parseInt(checkbox.value);
-            const friend = friendsData.find(f => f.id === friendId);
             
-            if (friend) {
-                const tag = document.createElement('span');
-                tag.className = 'inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm';
-                tag.innerHTML = `
-                    ${escapeHtml(friend.username)}
-                    <button type="button" 
-                            onclick="removeFriend(${friend.id}); event.stopPropagation();" 
-                            class="ml-1 text-blue-600 hover:text-blue-800 focus:outline-none">
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                        </svg>
-                    </button>
-                `;
-                selectedTags.appendChild(tag);
+            // Get friend info directly from the DOM (more reliable)
+            const label = checkbox.closest('label.friend-item');
+            if (label) {
+                const usernameElement = label.querySelector('span.text-sm.font-medium');
+                const emailElement = label.querySelector('span.text-xs.text-gray-500');
+                
+                if (usernameElement) {
+                    const username = usernameElement.textContent.trim();
+                    
+                    const tag = document.createElement('span');
+                    tag.className = 'inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm';
+                    tag.innerHTML = `
+                        ${escapeHtml(username)}
+                        <button type="button" 
+                                onclick="removeFriend(${friendId}); event.stopPropagation();" 
+                                class="ml-1 text-blue-600 hover:text-blue-800 focus:outline-none">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+                    `;
+                    selectedTags.appendChild(tag);
+                }
             }
         });
     }
@@ -156,16 +179,16 @@ function escapeHtml(text) {
 
 // Initialize form when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-hide error message after 5 seconds
+    // Auto-hide error message after 2.5 seconds
     const errorMsg = document.getElementById('error-message');
     if (errorMsg) {
-        setTimeout(hideErrorMessage, 5000);
+        setTimeout(hideErrorMessage, 2500);
     }
 
-    // Auto-hide success message after 5 seconds
+    // Auto-hide success message after 2.5 seconds
     const successMsg = document.getElementById('success-message');
     if (successMsg) {
-        setTimeout(hideSuccessMessage, 5000);
+        setTimeout(hideSuccessMessage, 2500);
     }
 
     // Get date and time inputs
@@ -206,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const end = new Date(endDateTime);
 
             if (end <= start) {
-                alert('End date and time must be after start date and time');
+                console.warn('End date and time must be after start date and time');
                 endTimeInput.value = '';
                 endDateInput.value = startDateInput.value;
                 updateHiddenInputs();
@@ -264,6 +287,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize hidden inputs
     updateHiddenInputs();
 
+    // Initialize checked state styling
+    updateSelectedFriends();
+
 
     // Close dropdown when clicking outside
     document.addEventListener('click', function(event) {
@@ -287,5 +313,8 @@ document.addEventListener('DOMContentLoaded', function() {
             event.stopPropagation();
         });
     }
+
+    // Initialize checked state styling for friend checkboxes
+    updateSelectedFriends();
 });
 

@@ -4,11 +4,11 @@
 function hideErrorMessage() {
     const errorMsg = document.getElementById('error-message');
     if (errorMsg) {
-        errorMsg.style.transition = 'opacity 0.5s ease-out';
+        errorMsg.style.transition = 'opacity 0.3s ease-out';
         errorMsg.style.opacity = '0';
         setTimeout(() => {
             errorMsg.remove();
-        }, 500);
+        }, 300);
     }
 }
 
@@ -16,11 +16,11 @@ function hideErrorMessage() {
 function hideSuccessMessage() {
     const successMsg = document.getElementById('success-message');
     if (successMsg) {
-        successMsg.style.transition = 'opacity 0.5s ease-out';
+        successMsg.style.transition = 'opacity 0.3s ease-out';
         successMsg.style.opacity = '0';
         setTimeout(() => {
             successMsg.remove();
-        }, 500);
+        }, 300);
     }
 }
 
@@ -43,13 +43,13 @@ async function restoreEvent(eventId) {
 
         if (data.success) {
             // Reload the page to show updated list
-            window.location.href = '/deleted-events?success=' + encodeURIComponent(data.message);
+            // Restore messages should be red (error), not green (success)
+            window.location.href = '/deleted-events?error=' + encodeURIComponent(data.error || 'Event restored successfully');
         } else {
-            alert('Error: ' + (data.error || 'Failed to restore event'));
+            console.error('Failed to restore event:', data.error || 'Unknown error');
         }
     } catch (error) {
         console.error('Error restoring event:', error);
-        alert('An error occurred while restoring the event');
     }
 }
 
@@ -72,34 +72,33 @@ async function permanentlyDeleteEvent(eventId, eventName) {
 
         if (data.success) {
             // Reload the page to show updated list
-            window.location.href = '/deleted-events?success=' + encodeURIComponent(data.message);
+            // Delete messages should be red (error), not green (success)
+            window.location.href = '/deleted-events?error=' + encodeURIComponent(data.error || 'Event permanently deleted');
         } else {
-            alert('Error: ' + (data.error || 'Failed to permanently delete event'));
+            console.error('Failed to permanently delete event:', data.error || 'Unknown error');
         }
     } catch (error) {
         console.error('Error permanently deleting event:', error);
-        alert('An error occurred while permanently deleting the event');
     }
 }
 
-// Auto-hide messages after 5 seconds
+// Auto-hide messages after 2.5 seconds
 document.addEventListener('DOMContentLoaded', function() {
+    // Clear URL parameters immediately
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.has('success')) {
+        currentUrl.searchParams.delete('success');
+        window.history.replaceState({}, document.title, currentUrl.toString());
+    }
+
     const errorMsg = document.getElementById('error-message');
     if (errorMsg) {
-        setTimeout(hideErrorMessage, 5000);
+        setTimeout(hideErrorMessage, 2500);
     }
 
     const successMsg = document.getElementById('success-message');
     if (successMsg) {
-        setTimeout(hideSuccessMessage, 5000);
-    }
-
-    // Check for success message in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const successParam = urlParams.get('success');
-    if (successParam) {
-        // Update the URL to remove the success parameter
-        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(hideSuccessMessage, 2500);
     }
 });
 

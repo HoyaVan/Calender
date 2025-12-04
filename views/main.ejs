@@ -16,13 +16,12 @@
   <main class="flex-1 <%= view === 'month' ? 'max-w-[1400px]' : 'max-w-6xl' %> mx-auto py-8 w-full pb-8" style="padding-left: 256px; padding-right: 256px;">
     <!-- Success/Error Messages -->
     <% if (locals.success) { %>
-      <div id="success-message" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded relative">
-        <button onclick="hideSuccessMessage()" class="absolute top-2 right-2 text-green-700 hover:text-green-900 font-bold text-lg">&times;</button>
+      <div id="success-message" class="fixed top-4 right-4 z-50 p-4 bg-green-100 border border-green-400 text-green-700 rounded shadow-lg max-w-md">
         <%= locals.success %>
       </div>
     <% } %>
     <% if (locals.error) { %>
-      <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+      <div id="error-message" class="fixed top-4 right-4 z-50 p-4 bg-red-100 border border-red-400 text-red-700 rounded shadow-lg max-w-md">
         <%= locals.error %>
       </div>
     <% } %>
@@ -227,15 +226,13 @@
 
           if (data.success) {
             // Reload the page to show updated list
+            // Delete messages should be red (error), not green (success)
             const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.set('success', 'Event deleted successfully');
+            currentUrl.searchParams.set('error', data.error || 'Event deleted successfully');
             window.location.href = currentUrl.toString();
-          } else {
-            alert('Error: ' + (data.error || 'Failed to delete event'));
           }
         } catch (error) {
           console.error('Error deleting event:', error);
-          alert('An error occurred while deleting the event');
         }
       }
       
@@ -243,7 +240,7 @@
       function hideSuccessMessage() {
         const successMsg = document.getElementById('success-message');
         if (successMsg) {
-          successMsg.style.transition = 'opacity 0.5s ease-out';
+          successMsg.style.transition = 'opacity 0.3s ease-out';
           successMsg.style.opacity = '0';
           setTimeout(() => {
             successMsg.remove();
@@ -251,15 +248,39 @@
             const currentUrl = new URL(window.location.href);
             currentUrl.searchParams.delete('success');
             window.history.replaceState({}, document.title, currentUrl.toString());
-          }, 500);
+          }, 300);
+        }
+      }
+
+      // Hide error message
+      function hideErrorMessage() {
+        const errorMsg = document.getElementById('error-message');
+        if (errorMsg) {
+          errorMsg.style.transition = 'opacity 0.3s ease-out';
+          errorMsg.style.opacity = '0';
+          setTimeout(() => {
+            errorMsg.remove();
+          }, 300);
         }
       }
       
-      // Auto-hide success message after 5 seconds
+      // Auto-hide messages after 2.5 seconds
       document.addEventListener('DOMContentLoaded', function() {
+        // Clear URL parameters immediately
+        const currentUrl = new URL(window.location.href);
+        if (currentUrl.searchParams.has('success')) {
+          currentUrl.searchParams.delete('success');
+          window.history.replaceState({}, document.title, currentUrl.toString());
+        }
+
         const successMsg = document.getElementById('success-message');
         if (successMsg) {
-          setTimeout(hideSuccessMessage, 5000);
+          setTimeout(hideSuccessMessage, 2500);
+        }
+
+        const errorMsg = document.getElementById('error-message');
+        if (errorMsg) {
+          setTimeout(hideErrorMessage, 2500);
         }
       });
     </script>

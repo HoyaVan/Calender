@@ -385,6 +385,14 @@ router.get("/", async (req, res) => {
       event.invitedUsers = await db_events.getInvitedUsersForEvent(event.event_id);
     }
 
+    // Get and immediately clear session messages
+    // Logout messages should be red (error), not green (success)
+    const logoutMessage = loggedOut ? 'You have been logged out successfully.' : null;
+    const error = logoutMessage || req.session.error || req.query.error;
+    const success = req.session.success || req.query.success;
+    req.session.error = null;
+    req.session.success = null;
+
     res.render("main", {
       events,
       selectedDate,
@@ -396,8 +404,8 @@ router.get("/", async (req, res) => {
       friends,
       selectedFriendIds,
       currentUserId: userId,
-      error: req.session.error,
-      success: loggedOut ? 'You have been logged out successfully.' : req.session.success || req.query.success,
+      error,
+      success,
       query: req.query
     });
   } catch (error) {
@@ -560,7 +568,7 @@ router.post("/api/delete-event", requireAuth, async (req, res) => {
     if (deleted) {
       return res.json({
         success: true,
-        message: "Event deleted successfully"
+        error: "Event deleted successfully"  // Use error field so it displays as red
       });
     } else {
       return res.json({
@@ -620,7 +628,7 @@ router.post("/api/restore-event", requireAuth, async (req, res) => {
     if (restored) {
       return res.json({
         success: true,
-        message: "Event restored successfully"
+        error: "Event restored successfully"  // Use error field so it displays as red
       });
     } else {
       return res.json({
@@ -655,7 +663,7 @@ router.post("/api/permanently-delete-event", requireAuth, async (req, res) => {
     if (deleted) {
       return res.json({
         success: true,
-        message: "Event permanently deleted"
+        error: "Event permanently deleted"  // Use error field so it displays as red
       });
     } else {
       return res.json({
