@@ -158,7 +158,7 @@
                                 </div>
                                 
                                 <!-- Dropdown menu -->
-                                <div id="friend-dropdown" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-64 overflow-hidden">
+                                <div id="friend-dropdown" class="hidden absolute z-50 w-full bg-white border border-gray-300 rounded-md shadow-lg overflow-hidden" style="max-height: 256px;">
                                     <!-- Search input -->
                                     <div class="p-2 border-b border-gray-200 sticky top-0 bg-white">
                                         <input type="text" 
@@ -169,7 +169,7 @@
                                     </div>
                                     
                                     <!-- Friends list -->
-                                    <div id="friends-list" class="overflow-y-auto max-h-56">
+                                    <div id="friends-list" class="overflow-y-auto max-h-56" style="padding-bottom: 100px;">
                                         <% friendsList.forEach(friend => { %>
                                             <label class="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 friend-item" data-username="<%= friend.username.toLowerCase() %>" data-email="<%= friend.email.toLowerCase() %>">
                                                 <input type="checkbox" 
@@ -213,266 +213,16 @@
     <!-- Footer -->
     <%- include('templates/footer', { showQuickLinks: false }) %>
 
-    <script>
-        // Auto-hide error message
-        function hideErrorMessage() {
-            const errorMsg = document.getElementById('error-message');
-            if (errorMsg) {
-                errorMsg.style.transition = 'opacity 0.5s ease-out';
-                errorMsg.style.opacity = '0';
-                setTimeout(() => {
-                    errorMsg.remove();
-                }, 500);
-            }
-        }
-
-        // Auto-hide success message
-        function hideSuccessMessage() {
-            const successMsg = document.getElementById('success-message');
-            if (successMsg) {
-                successMsg.style.transition = 'opacity 0.5s ease-out';
-                successMsg.style.opacity = '0';
-                setTimeout(() => {
-                    successMsg.remove();
-                }, 500);
-            }
-        }
-
-        // Helper function to combine date and time into datetime-local format
-        function combineDateTime(dateInput, timeInput) {
-            if (!dateInput.value || !timeInput.value) {
-                return '';
-            }
-            return dateInput.value + 'T' + timeInput.value;
-        }
-
-        // Helper function to set today's date as default
-        function setTodayDate(dateInput) {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            dateInput.value = `${year}-${month}-${day}`;
-        }
-
-        // Auto-hide messages after 5 seconds
-        document.addEventListener('DOMContentLoaded', function() {
-            const errorMsg = document.getElementById('error-message');
-            if (errorMsg) {
-                setTimeout(hideErrorMessage, 5000);
-            }
-
-            const successMsg = document.getElementById('success-message');
-            if (successMsg) {
-                setTimeout(hideSuccessMessage, 5000);
-            }
-
-            // Get date and time inputs
-            const startDateInput = document.getElementById('event_start_date');
-            const startTimeInput = document.getElementById('event_start_time');
-            const endDateInput = document.getElementById('event_end_date');
-            const endTimeInput = document.getElementById('event_end_time');
-            const startHiddenInput = document.getElementById('event_start');
-            const endHiddenInput = document.getElementById('event_end');
-
-            // Set default dates to today
-            setTodayDate(startDateInput);
-            setTodayDate(endDateInput);
-
-            // Function to update hidden datetime inputs
-            function updateHiddenInputs() {
-                startHiddenInput.value = combineDateTime(startDateInput, startTimeInput);
-                endHiddenInput.value = combineDateTime(endDateInput, endTimeInput);
-            }
-
-            // Update hidden inputs whenever date or time changes
-            startDateInput.addEventListener('change', updateHiddenInputs);
-            startTimeInput.addEventListener('change', updateHiddenInputs);
-            endDateInput.addEventListener('change', updateHiddenInputs);
-            endTimeInput.addEventListener('change', updateHiddenInputs);
-
-            // Validate that end datetime is after start datetime
-            function validateDateTime() {
-                const startDateTime = combineDateTime(startDateInput, startTimeInput);
-                const endDateTime = combineDateTime(endDateInput, endTimeInput);
-
-                if (startDateTime && endDateTime) {
-                    const start = new Date(startDateTime);
-                    const end = new Date(endDateTime);
-
-                    if (end <= start) {
-                        alert('End date and time must be after start date and time');
-                        endTimeInput.value = '';
-                        endDateInput.value = startDateInput.value;
-                        updateHiddenInputs();
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            // Validate on form submit
-            const form = document.querySelector('form');
-            form.addEventListener('submit', function(e) {
-                updateHiddenInputs();
-                if (!validateDateTime()) {
-                    e.preventDefault();
-                    return false;
-                }
-            });
-
-            // Validate when end date/time changes
-            endDateInput.addEventListener('change', function() {
-                if (!validateDateTime()) {
-                    this.value = startDateInput.value;
-                }
-                updateHiddenInputs();
-            });
-
-            endTimeInput.addEventListener('change', function() {
-                if (!validateDateTime()) {
-                    this.value = '';
-                }
-                updateHiddenInputs();
-            });
-
-            // When start date changes, ensure end date is not before it
-            startDateInput.addEventListener('change', function() {
-                if (endDateInput.value && endDateInput.value < this.value) {
-                    endDateInput.value = this.value;
-                }
-                updateHiddenInputs();
-            });
-
-            // When start time changes, validate end time if dates are the same
-            startTimeInput.addEventListener('change', function() {
-                if (startDateInput.value === endDateInput.value) {
-                    if (endTimeInput.value && endTimeInput.value <= this.value) {
-                        endTimeInput.value = '';
-                    }
-                }
-                updateHiddenInputs();
-            });
-
-            // Initialize hidden inputs
-            updateHiddenInputs();
-        });
-
-        // Friend selector dropdown functionality
-        let friendsData = [];
-        <% if (friendsList && friendsList.length > 0) { %>
-        friendsData = [
-            <% friendsList.forEach((friend, index) => { %>
-            {
-                id: <%= friend.user_id %>,
-                username: <%- JSON.stringify(friend.username) %>,
-                email: <%- JSON.stringify(friend.email) %>
-            }<%= index < friendsList.length - 1 ? ',' : '' %>
-            <% }); %>
-        ];
-        <% } %>
-
-        function toggleDropdown() {
-            const dropdown = document.getElementById('friend-dropdown');
-            const arrow = document.getElementById('dropdown-arrow');
-            if (dropdown.classList.contains('hidden')) {
-                dropdown.classList.remove('hidden');
-                arrow.classList.add('transform', 'rotate-180');
-                document.getElementById('friend-search').focus();
-            } else {
-                dropdown.classList.add('hidden');
-                arrow.classList.remove('transform', 'rotate-180');
-            }
-        }
-
-        function filterFriends() {
-            const searchTerm = document.getElementById('friend-search').value.toLowerCase();
-            const friendItems = document.querySelectorAll('.friend-item');
-            const noResults = document.getElementById('no-results');
-            let visibleCount = 0;
-
-            friendItems.forEach(item => {
-                const username = item.getAttribute('data-username');
-                const email = item.getAttribute('data-email');
-                const matches = username.includes(searchTerm) || email.includes(searchTerm);
-                
-                if (matches) {
-                    item.style.display = 'flex';
-                    visibleCount++;
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-
-            // Show/hide no results message
-            if (visibleCount === 0 && searchTerm.length > 0) {
-                noResults.classList.remove('hidden');
-            } else {
-                noResults.classList.add('hidden');
-            }
-        }
-
-        function updateSelectedFriends() {
-            const checkboxes = document.querySelectorAll('.friend-checkbox:checked');
-            const selectedTags = document.getElementById('selected-tags');
-            const placeholder = document.getElementById('placeholder-text');
-            
-            selectedTags.innerHTML = '';
-            
-            if (checkboxes.length === 0) {
-                placeholder.style.display = 'block';
-            } else {
-                placeholder.style.display = 'none';
-                
-                checkboxes.forEach(checkbox => {
-                    const friendId = checkbox.value;
-                    const friend = friendsData.find(f => f.id == friendId);
-                    
-                    if (friend) {
-                        const tag = document.createElement('span');
-                        tag.className = 'inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm';
-                        tag.innerHTML = `
-                            ${friend.username}
-                            <button type="button" 
-                                    onclick="removeFriend(${friend.id}); event.stopPropagation();" 
-                                    class="ml-1 text-blue-600 hover:text-blue-800 focus:outline-none">
-                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                </svg>
-                            </button>
-                        `;
-                        selectedTags.appendChild(tag);
-                    }
-                });
-            }
-        }
-
-        function removeFriend(friendId) {
-            const checkbox = document.querySelector(`.friend-checkbox[value="${friendId}"]`);
-            if (checkbox) {
-                checkbox.checked = false;
-                updateSelectedFriends();
-            }
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            const container = document.getElementById('friend-selector-container');
-            if (container && !container.contains(event.target)) {
-                const dropdown = document.getElementById('friend-dropdown');
-                const arrow = document.getElementById('dropdown-arrow');
-                if (!dropdown.classList.contains('hidden')) {
-                    dropdown.classList.add('hidden');
-                    arrow.classList.remove('transform', 'rotate-180');
-                }
-            }
-        });
-
-        // Prevent dropdown from closing when clicking inside it
-        document.getElementById('friend-dropdown')?.addEventListener('click', function(event) {
-            event.stopPropagation();
-        });
+    <!-- Initialize friends data from server -->
+    <script type="text/javascript">
+        // Initialize friendsData before loading the external script
+        <% const friendsListForJS = (typeof friends !== 'undefined' && friends && friends.length) ? friends : []; %>
+        window.friendsData = <%- JSON.stringify(friendsListForJS.map(f => ({ id: f.user_id, username: f.username, email: f.email }))) %>;
     </script>
+    
+    <!-- Load external JavaScript file -->
+    <script src="/js/addEvent.js"></script>
+    
     <!-- JavaScript for notifications -->
     <script src="/js/notifications.js"></script>
 </body>
