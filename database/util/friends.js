@@ -246,7 +246,7 @@ async function getSentFriendRequests(userId) {
 }
 
 /**
- * Search users by username or email (excluding current user and existing friends/requests)
+ * Search users by username (excluding current user and existing friends/requests)
  * @param {number} userId - Current user ID
  * @param {string} searchTerm - Search term
  * @returns {Promise<Array>} Array of user objects
@@ -291,10 +291,10 @@ async function searchUsers(userId, searchTerm) {
     const [users] = await pool.execute(
       `SELECT user_id, username, email
        FROM user
-       WHERE (username LIKE ? OR email LIKE ?)
+       WHERE username LIKE ?
        AND user_id NOT IN (${placeholders})
        LIMIT 20`,
-      [searchPattern, searchPattern, ...excludedIds]
+      [searchPattern, ...excludedIds]
     );
 
     return users;
