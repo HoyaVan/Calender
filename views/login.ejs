@@ -62,26 +62,7 @@
     <!-- Footer -->
     <%- include('templates/footer', { showQuickLinks: false }) %>
 
-    <script>
-        // Auto-hide error message
-        function hideErrorMessage() {
-            const errorMsg = document.getElementById('error-message');
-            if (errorMsg) {
-                errorMsg.style.transition = 'opacity 0.3s ease-out';
-                errorMsg.style.opacity = '0';
-                setTimeout(() => {
-                    errorMsg.remove();
-                }, 300);
-            }
-        }
-
-        // Auto-hide after 2.5 seconds
-        document.addEventListener('DOMContentLoaded', function() {
-            const errorMsg = document.getElementById('error-message');
-            if (errorMsg) {
-                setTimeout(hideErrorMessage, 2500);
-            }
-        });
-    </script>
+    <!-- JavaScript for message handling -->
+    <script src="/js/message-handler.js"></script>
 </body>
 </html>

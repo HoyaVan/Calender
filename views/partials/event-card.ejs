@@ -1,29 +1,40 @@
 <!-- Event Card Component -->
 <% 
-  // Default color if no event color is set
-  const defaultColor = '#3B82F6'; // blue-500
-  const eventColor = event.event_color || defaultColor;
-  
-  // Convert hex to RGB for opacity
-  const hexToRgb = (hex) => {
+  // Include color utilities and use them in the same block
+  // Shared color utility functions for event cards
+  function hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
       r: parseInt(result[1], 16),
       g: parseInt(result[2], 16),
       b: parseInt(result[3], 16)
     } : null;
-  };
+  }
   
-  const rgb = hexToRgb(eventColor);
-  const bgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.05)` : 'rgba(59, 130, 246, 0.05)';
-  const borderColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` : 'rgba(59, 130, 246, 0.2)';
-  const hoverBgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)` : 'rgba(59, 130, 246, 0.1)';
+  function getEventColorStyles(eventColor, defaultColor) {
+    if (typeof defaultColor === 'undefined') defaultColor = '#3B82F6';
+    const color = eventColor || defaultColor;
+    const rgb = hexToRgb(color);
+    const bgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.05)` : 'rgba(59, 130, 246, 0.05)';
+    const borderColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` : 'rgba(59, 130, 246, 0.2)';
+    const hoverBgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)` : 'rgba(59, 130, 246, 0.1)';
+    
+    return {
+      color: color,
+      bgColor: bgColor,
+      borderColor: borderColor,
+      hoverBgColor: hoverBgColor
+    };
+  }
+  
+  const defaultColor = '#3B82F6'; // blue-500
+  const colorStyles = getEventColorStyles(event.event_color, defaultColor);
 %>
 <div class="rounded-lg p-4 shadow-sm hover:shadow-md transition-all border-2 <%= event.isFriendEvent ? 'friend-event' : 'user-event' %>" 
-     style="background-color: <%= bgColor %>; border-color: <%= borderColor %>; border-left: 4px solid <%= eventColor %>;"
+     style="background-color: <%= colorStyles.bgColor %>; border-color: <%= colorStyles.borderColor %>; border-left: 4px solid <%= colorStyles.color %>;"
      <% if (event.isFriendEvent) { %>data-friend-event="true" data-friend-owner-id="<%= event.event_owner_id %>"<% } %>
-     onmouseover="this.style.backgroundColor='<%= hoverBgColor %>'"
-     onmouseout="this.style.backgroundColor='<%= bgColor %>'">
+     onmouseover="this.style.backgroundColor='<%= colorStyles.hoverBgColor %>'"
+     onmouseout="this.style.backgroundColor='<%= colorStyles.bgColor %>'">
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div class="flex-1">
       <h3 class="text-lg font-semibold text-gray-900 mb-2">

@@ -1,29 +1,40 @@
 <!-- Compact Event Card Component (for week/month views) -->
 <% 
-  // Default color if no event color is set
-  const defaultColor = '#3B82F6'; // blue-500
-  const eventColor = event.event_color || defaultColor;
-  
-  // Convert hex to RGB for opacity
-  const hexToRgb = (hex) => {
+  // Include color utilities and use them in the same block
+  // Shared color utility functions for event cards
+  function hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
       r: parseInt(result[1], 16),
       g: parseInt(result[2], 16),
       b: parseInt(result[3], 16)
     } : null;
-  };
+  }
   
-  const rgb = hexToRgb(eventColor);
-  const bgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)` : 'rgba(59, 130, 246, 0.1)';
-  const borderColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)` : 'rgba(59, 130, 246, 0.3)';
-  const hoverBgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` : 'rgba(59, 130, 246, 0.2)';
+  function getCompactEventColorStyles(eventColor, defaultColor) {
+    if (typeof defaultColor === 'undefined') defaultColor = '#3B82F6';
+    const color = eventColor || defaultColor;
+    const rgb = hexToRgb(color);
+    const bgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)` : 'rgba(59, 130, 246, 0.1)';
+    const borderColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)` : 'rgba(59, 130, 246, 0.3)';
+    const hoverBgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` : 'rgba(59, 130, 246, 0.2)';
+    
+    return {
+      color: color,
+      bgColor: bgColor,
+      borderColor: borderColor,
+      hoverBgColor: hoverBgColor
+    };
+  }
+  
+  const defaultColor = '#3B82F6'; // blue-500
+  const colorStyles = getCompactEventColorStyles(event.event_color, defaultColor);
 %>
 <div class="rounded p-1.5 transition-colors w-full max-w-full box-border <%= event.isFriendEvent ? 'friend-event' : 'user-event' %> <%= typeof opacityClass !== 'undefined' ? opacityClass : '' %>" 
-     style="background-color: <%= bgColor %>; border: 1px solid <%= borderColor %>; border-left: 3px solid <%= eventColor %>; min-width: 0;"
+     style="background-color: <%= colorStyles.bgColor %>; border: 1px solid <%= colorStyles.borderColor %>; border-left: 3px solid <%= colorStyles.color %>; min-width: 0;"
      <% if (event.isFriendEvent) { %>data-friend-event="true" data-friend-owner-id="<%= event.event_owner_id %>"<% } %>
-     onmouseover="this.style.backgroundColor='<%= hoverBgColor %>'"
-     onmouseout="this.style.backgroundColor='<%= bgColor %>'">
+     onmouseover="this.style.backgroundColor='<%= colorStyles.hoverBgColor %>'"
+     onmouseout="this.style.backgroundColor='<%= colorStyles.bgColor %>'">
   <div class="text-xs font-semibold text-gray-900 truncate">
     <%= event.event_name %>
     <% if (event.owner_username && typeof currentUserId !== 'undefined' && currentUserId && event.event_owner_id !== currentUserId) { %>

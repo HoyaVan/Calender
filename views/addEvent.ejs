@@ -218,9 +218,10 @@
         window.friendsData = <%- JSON.stringify(friendsListForJS.map(f => ({ id: f.user_id, username: f.username, email: f.email }))) %>;
     </script>
     
+    <!-- JavaScript for message handling -->
+    <script src="/js/message-handler.js"></script>
     <!-- Load external JavaScript file -->
     <script src="/js/addEvent.js"></script>
-    
     <!-- JavaScript for notifications -->
     <script src="/js/notifications.js"></script>
 </body>

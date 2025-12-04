@@ -4,29 +4,7 @@
 // Use friendsData from window (initialized from server in EJS template)
 const friendsData = window.friendsData || [];
 
-// Auto-hide error message
-function hideErrorMessage() {
-    const errorMsg = document.getElementById('error-message');
-    if (errorMsg) {
-        errorMsg.style.transition = 'opacity 0.3s ease-out';
-        errorMsg.style.opacity = '0';
-        setTimeout(() => {
-            errorMsg.remove();
-        }, 300);
-    }
-}
-
-// Auto-hide success message
-function hideSuccessMessage() {
-    const successMsg = document.getElementById('success-message');
-    if (successMsg) {
-        successMsg.style.transition = 'opacity 0.3s ease-out';
-        successMsg.style.opacity = '0';
-        setTimeout(() => {
-            successMsg.remove();
-        }, 300);
-    }
-}
+// Message handling is now in message-handler.js
 
 // Helper function to combine date and time into datetime-local format
 function combineDateTime(dateInput, timeInput) {
@@ -179,17 +157,7 @@ function escapeHtml(text) {
 
 // Initialize form when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-hide error message after 2.5 seconds
-    const errorMsg = document.getElementById('error-message');
-    if (errorMsg) {
-        setTimeout(hideErrorMessage, 2500);
-    }
-
-    // Auto-hide success message after 2.5 seconds
-    const successMsg = document.getElementById('success-message');
-    if (successMsg) {
-        setTimeout(hideSuccessMessage, 2500);
-    }
+    // Message auto-hide is handled by message-handler.js
 
     // Get date and time inputs
     const startDateInput = document.getElementById('event_start_date');
