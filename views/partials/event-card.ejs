@@ -19,14 +19,18 @@
   const borderColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` : 'rgba(59, 130, 246, 0.2)';
   const hoverBgColor = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)` : 'rgba(59, 130, 246, 0.1)';
 %>
-<div class="rounded-lg p-4 shadow-sm hover:shadow-md transition-all border-2" 
+<div class="rounded-lg p-4 shadow-sm hover:shadow-md transition-all border-2 <%= event.isFriendEvent ? 'friend-event' : 'user-event' %>" 
      style="background-color: <%= bgColor %>; border-color: <%= borderColor %>; border-left: 4px solid <%= eventColor %>;"
+     <% if (event.isFriendEvent) { %>data-friend-event="true" data-friend-owner-id="<%= event.event_owner_id %>"<% } %>
      onmouseover="this.style.backgroundColor='<%= hoverBgColor %>'"
      onmouseout="this.style.backgroundColor='<%= bgColor %>'">
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div class="flex-1">
       <h3 class="text-lg font-semibold text-gray-900 mb-2">
         <%= event.event_name %>
+        <% if (event.isFriendEvent && event.owner_username) { %>
+          <span class="text-sm font-normal text-gray-500 ml-2">by <%= event.owner_username %></span>
+        <% } %>
       </h3>
       <div class="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-600">
         <div class="flex items-center gap-1">
@@ -54,12 +58,14 @@
           <%= event.security_level %>
         </span>
       <% } %>
-      <button 
-        onclick="deleteEvent(<%= event.event_id %>, '<%= event.event_name.replace(/'/g, "\\'") %>')"
-        class="px-3 py-1 text-xs font-medium rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors"
-        title="Delete event">
-        Delete
-      </button>
+      <% if (!event.isFriendEvent) { %>
+        <button 
+          onclick="deleteEvent(<%= event.event_id %>, '<%= event.event_name.replace(/'/g, "\\'") %>')"
+          class="px-3 py-1 text-xs font-medium rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors"
+          title="Delete event">
+          Delete
+        </button>
+      <% } %>
     </div>
   </div>
 </div>

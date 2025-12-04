@@ -748,6 +748,215 @@ async function cleanupOldDeletedEvents() {
   }
 }
 
+/**
+ * Get the event_security_id for "public" security level
+ * @returns {Promise<number|null>} The security ID for "public" or null if not found
+ */
+let publicSecurityId = null;
+async function getPublicSecurityId() {
+  if (publicSecurityId !== null) {
+    return publicSecurityId;
+  }
+  
+  try {
+    const query = `SELECT event_security_id FROM event_security WHERE security_level = 'public' LIMIT 1`;
+    const [rows] = await pool.execute(query);
+    publicSecurityId = rows.length > 0 ? rows[0].event_security_id : null;
+    return publicSecurityId;
+  } catch (error) {
+    console.error('Error getting public security ID:', error);
+    return null;
+  }
+}
+
+/**
+ * Get public events from friends for a specific date
+ * @param {number} userId - The user ID to get friends for
+ * @param {string} date - Date string in YYYY-MM-DD format
+ * @param {Array<number>} [selectedFriendIds] - Optional array of friend user IDs to filter by. If empty or not provided, shows all friends' events.
+ * @returns {Promise<Array>} Array of public event objects from friends that occur on the specified date
+ */
+async function getFriendPublicEventsByDate(userId, date, selectedFriendIds = null) {
+  try {
+    const isConnected = await isMySQLConnected();
+    if (!isConnected) {
+      console.error('Cannot get friend events: MySQL is not connected');
+      return [];
+    }
+
+    if (!userId || !date) {
+      console.error('Cannot get friend events: user ID and date are required');
+      return [];
+    }
+
+    const publicId = await getPublicSecurityId();
+    if (!publicId) {
+      return [];
+    }
+
+    // Parse the date and create start and end of day in UTC
+    const selectedDate = new Date(date + 'T00:00:00.000Z');
+    const nextDate = new Date(selectedDate);
+    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+
+    // Format dates for MySQL (YYYY-MM-DD HH:MM:SS)
+    const dayStart = selectedDate.toISOString().slice(0, 19).replace('T', ' ');
+    const dayEnd = nextDate.toISOString().slice(0, 19).replace('T', ' ');
+
+    const deletedId = await getDeletedSecurityId();
+    const deletedFilter = deletedId ? `AND e.event_security_id != ${deletedId}` : '';
+
+    // Build friend filter if specific friends are selected
+    // null = show all friends, [] = show none, [1,2,3] = show specific friends
+    let friendFilter = '';
+    let queryParams = [userId, userId, publicId, dayEnd, dayStart, userId];
+    
+    if (selectedFriendIds !== null && Array.isArray(selectedFriendIds)) {
+      if (selectedFriendIds.length === 0) {
+        // Empty array means show no friends - add impossible condition
+        friendFilter = `AND 1=0`; // This will return no results
+      } else {
+        // Filter by selected friend IDs
+        const placeholders = selectedFriendIds.map(() => '?').join(',');
+        friendFilter = `AND e.event_owner_id IN (${placeholders})`;
+        queryParams = [...queryParams, ...selectedFriendIds];
+      }
+    }
+    // If selectedFriendIds is null, no filter is added (show all friends)
+
+    // Get public events from friends where the event overlaps with the selected day
+    const query = `
+      SELECT 
+        e.event_id,
+        e.event_name,
+        e.event_start,
+        e.event_end,
+        e.event_owner_id,
+        e.event_security_id,
+        u.username as owner_username,
+        es.security_level,
+        ec.color as event_color
+      FROM event e
+      LEFT JOIN user u ON e.event_owner_id = u.user_id
+      LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
+      LEFT JOIN event_color ec ON e.event_id = ec.event_id
+      LEFT JOIN deletedEvent de ON e.event_id = de.event_id
+      INNER JOIN user_friend uf ON (
+        (uf.user1_id = ? AND uf.user2_id = e.event_owner_id) OR
+        (uf.user2_id = ? AND uf.user1_id = e.event_owner_id)
+      )
+      WHERE e.event_security_id = ?
+        AND e.event_start < ?
+        AND e.event_end > ?
+        AND e.event_owner_id != ?
+        ${deletedFilter}
+        ${friendFilter}
+        AND de.event_id IS NULL
+      ORDER BY e.event_start ASC
+    `;
+    
+    const [rows] = await pool.execute(query, queryParams);
+    return rows;
+  } catch (error) {
+    console.error('Error getting friend public events by date:', error);
+    return [];
+  }
+}
+
+/**
+ * Get public events from friends for a date range
+ * @param {number} userId - The user ID to get friends for
+ * @param {string} startDate - Start date string in YYYY-MM-DD format
+ * @param {string} endDate - End date string in YYYY-MM-DD format (exclusive, so use next day)
+ * @param {Array<number>} [selectedFriendIds] - Optional array of friend user IDs to filter by. If empty or not provided, shows all friends' events.
+ * @returns {Promise<Array>} Array of public event objects from friends that occur within the date range
+ */
+async function getFriendPublicEventsByDateRange(userId, startDate, endDate, selectedFriendIds = null) {
+  try {
+    const isConnected = await isMySQLConnected();
+    if (!isConnected) {
+      console.error('Cannot get friend events: MySQL is not connected');
+      return [];
+    }
+
+    if (!userId || !startDate || !endDate) {
+      console.error('Cannot get friend events: user ID, start date, and end date are required');
+      return [];
+    }
+
+    const publicId = await getPublicSecurityId();
+    if (!publicId) {
+      return [];
+    }
+
+    // Parse dates and create start and end timestamps
+    const rangeStart = new Date(startDate + 'T00:00:00.000Z');
+    const rangeEnd = new Date(endDate + 'T00:00:00.000Z');
+
+    // Format dates for MySQL (YYYY-MM-DD HH:MM:SS)
+    const rangeStartStr = rangeStart.toISOString().slice(0, 19).replace('T', ' ');
+    const rangeEndStr = rangeEnd.toISOString().slice(0, 19).replace('T', ' ');
+
+    const deletedId = await getDeletedSecurityId();
+    const deletedFilter = deletedId ? `AND e.event_security_id != ${deletedId}` : '';
+
+    // Build friend filter if specific friends are selected
+    // null = show all friends, [] = show none, [1,2,3] = show specific friends
+    let friendFilter = '';
+    let queryParams = [userId, userId, publicId, rangeEndStr, rangeStartStr, userId];
+    
+    if (selectedFriendIds !== null && Array.isArray(selectedFriendIds)) {
+      if (selectedFriendIds.length === 0) {
+        // Empty array means show no friends - add impossible condition
+        friendFilter = `AND 1=0`; // This will return no results
+      } else {
+        // Filter by selected friend IDs
+        const placeholders = selectedFriendIds.map(() => '?').join(',');
+        friendFilter = `AND e.event_owner_id IN (${placeholders})`;
+        queryParams = [...queryParams, ...selectedFriendIds];
+      }
+    }
+    // If selectedFriendIds is null, no filter is added (show all friends)
+
+    // Get public events from friends where the event overlaps with the date range
+    const query = `
+      SELECT 
+        e.event_id,
+        e.event_name,
+        e.event_start,
+        e.event_end,
+        e.event_owner_id,
+        e.event_security_id,
+        u.username as owner_username,
+        es.security_level,
+        ec.color as event_color
+      FROM event e
+      LEFT JOIN user u ON e.event_owner_id = u.user_id
+      LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
+      LEFT JOIN event_color ec ON e.event_id = ec.event_id
+      LEFT JOIN deletedEvent de ON e.event_id = de.event_id
+      INNER JOIN user_friend uf ON (
+        (uf.user1_id = ? AND uf.user2_id = e.event_owner_id) OR
+        (uf.user2_id = ? AND uf.user1_id = e.event_owner_id)
+      )
+      WHERE e.event_security_id = ?
+        AND e.event_start < ?
+        AND e.event_end > ?
+        AND e.event_owner_id != ?
+        ${deletedFilter}
+        ${friendFilter}
+        AND de.event_id IS NULL
+      ORDER BY e.event_start ASC
+    `;
+    
+    const [rows] = await pool.execute(query, queryParams);
+    return rows;
+  } catch (error) {
+    console.error('Error getting friend public events by date range:', error);
+    return [];
+  }
+}
+
 module.exports = {
   getAllEvents,
   getEventsByUserId,
@@ -760,5 +969,7 @@ module.exports = {
   softDeleteEvent,
   restoreEvent,
   permanentlyDeleteEvent,
-  cleanupOldDeletedEvents
+  cleanupOldDeletedEvents,
+  getFriendPublicEventsByDate,
+  getFriendPublicEventsByDateRange
 };

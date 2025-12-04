@@ -29,6 +29,82 @@
 
     <!-- View Toggle Buttons -->
     <%- include('partials/view-toggle-buttons') %>
+    
+    <!-- Friend Events Toggle -->
+    <div class="flex justify-center items-center gap-4 mb-4 flex-wrap">
+      <button 
+        id="friendEventsToggle"
+        onclick="toggleFriendEvents()"
+        class="px-6 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 <%= showFriendEvents ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-700 hover:bg-gray-400' %>">
+        <span class="font-semibold">View Friend Events:</span>
+        <span class="px-3 py-1 rounded <%= showFriendEvents ? 'bg-green-700 text-white' : 'bg-gray-400 text-white' %> font-bold">
+          <%= showFriendEvents ? 'ON' : 'OFF' %>
+        </span>
+      </button>
+      
+      <!-- Friend Selector Button (only visible when friend events are enabled) -->
+      <% if (showFriendEvents && friends && friends.length > 0) { %>
+        <div class="relative">
+          <button 
+            id="filterFriendEventsButton"
+            onclick="toggleFriendSelectorPopup()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+            Filter Friend Events
+          </button>
+          
+          <!-- Friend Selector Popup (positioned below button) -->
+          <div id="friendSelectorPopup" class="hidden absolute top-full left-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 w-64 max-h-[400px] flex flex-col z-50">
+            <!-- Modal Header -->
+            <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-gray-900">Filter Friend Events</h3>
+              <button 
+                onclick="toggleFriendSelectorPopup()"
+                class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="flex-1 overflow-y-auto">
+              <div class="sticky top-0 bg-gray-100 border-b border-gray-300 px-4 py-2 z-10">
+                <label class="flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    id="selectAllFriends"
+                    onchange="toggleSelectAllFriends()"
+                    <%= (selectedFriendIds === null || (Array.isArray(selectedFriendIds) && selectedFriendIds.length === friends.length)) ? 'checked' : '' %>
+                    class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                  <span class="text-sm font-semibold text-gray-700" id="selectAllLabel">
+                    <%= (Array.isArray(selectedFriendIds) && selectedFriendIds.length > 0 && selectedFriendIds.length < friends.length) ? 'Select All' : 'All' %>
+                  </span>
+                </label>
+              </div>
+              <div class="p-2 space-y-1">
+                <% friends.forEach(friend => { %>
+                  <label class="flex items-center px-3 py-2 hover:bg-gray-50 rounded cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      name="friendCheckbox"
+                      value="<%= friend.user_id %>"
+                      onchange="updateFriendSelection()"
+                      <%= (selectedFriendIds === null || (Array.isArray(selectedFriendIds) && selectedFriendIds.includes(friend.user_id))) ? 'checked' : '' %>
+                      class="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <span class="text-sm text-gray-700"><%= friend.username %></span>
+                  </label>
+                <% }); %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+    
+    <!-- Backdrop overlay (only shown when popup is open) -->
+    <% if (showFriendEvents && friends && friends.length > 0) { %>
+      <div id="friendSelectorBackdrop" class="hidden fixed inset-0 bg-black bg-opacity-25 z-40" onclick="toggleFriendSelectorPopup()"></div>
+    <% } %>
 
     <!-- Day View -->
     <% if (view === 'day') { %>
@@ -50,6 +126,87 @@
     <script>
       // Initialize calendar navigation
       initCalendarNavigation('<%= selectedDate %>', '<%= view %>');
+      
+      // Toggle friend events
+      function toggleFriendEvents() {
+        const currentUrl = new URL(window.location.href);
+        const showFriendEvents = currentUrl.searchParams.get('showFriendEvents') === 'true';
+        
+        if (showFriendEvents) {
+          currentUrl.searchParams.delete('showFriendEvents');
+          currentUrl.searchParams.delete('selectedFriends');
+        } else {
+          currentUrl.searchParams.set('showFriendEvents', 'true');
+        }
+        
+        // Reload page to apply changes
+        window.location.href = currentUrl.toString();
+      }
+      
+      // Toggle friend selector popup
+      function toggleFriendSelectorPopup() {
+        const popup = document.getElementById('friendSelectorPopup');
+        const backdrop = document.getElementById('friendSelectorBackdrop');
+        if (popup) {
+          popup.classList.toggle('hidden');
+        }
+        if (backdrop) {
+          backdrop.classList.toggle('hidden');
+        }
+      }
+      
+      // Toggle select all friends
+      function toggleSelectAllFriends() {
+        const selectAllCheckbox = document.getElementById('selectAllFriends');
+        const friendCheckboxes = document.querySelectorAll('input[name="friendCheckbox"]');
+        const isChecked = selectAllCheckbox.checked;
+        
+        friendCheckboxes.forEach(checkbox => {
+          checkbox.checked = isChecked;
+        });
+        
+        // Update label
+        const selectAllLabel = document.getElementById('selectAllLabel');
+        if (selectAllLabel) {
+          selectAllLabel.textContent = isChecked ? 'All' : 'Select All';
+        }
+        
+        updateFriendSelection();
+      }
+      
+      // Update friend selection and reload page to filter events
+      function updateFriendSelection() {
+        const friendCheckboxes = document.querySelectorAll('input[name="friendCheckbox"]:checked');
+        const selectedIds = Array.from(friendCheckboxes).map(cb => parseInt(cb.value));
+        const allCheckboxes = document.querySelectorAll('input[name="friendCheckbox"]');
+        
+        // Update select all checkbox state and label
+        const selectAllCheckbox = document.getElementById('selectAllFriends');
+        const selectAllLabel = document.getElementById('selectAllLabel');
+        if (selectAllCheckbox && selectAllLabel) {
+          const allSelected = selectedIds.length === allCheckboxes.length;
+          const noneSelected = selectedIds.length === 0;
+          selectAllCheckbox.checked = allSelected || noneSelected;
+          selectAllLabel.textContent = (allSelected || noneSelected) ? 'All' : 'Select All';
+        }
+        
+        // Update URL with selected friends
+        const currentUrl = new URL(window.location.href);
+        if (selectedIds.length === 0) {
+          // If none selected, set empty string to show none
+          currentUrl.searchParams.set('selectedFriends', '');
+        } else if (selectedIds.length === allCheckboxes.length) {
+          // If all selected, remove parameter (show all by default)
+          currentUrl.searchParams.delete('selectedFriends');
+        } else {
+          // Some selected - set the comma-separated list
+          currentUrl.searchParams.set('selectedFriends', selectedIds.join(','));
+        }
+        
+        // Reload page to apply filtering
+        window.location.href = currentUrl.toString();
+      }
+      
       
       // Delete event function
       async function deleteEvent(eventId, eventName) {
