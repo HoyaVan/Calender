@@ -48,7 +48,7 @@
           <button 
             id="filterFriendEventsButton"
             onclick="toggleFriendSelectorPopup()"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
             Filter Friend Events
           </button>
           
@@ -75,8 +75,8 @@
                     id="selectAllFriends"
                     onchange="toggleSelectAllFriends()"
                     <%= (selectedFriendIds === null || (Array.isArray(selectedFriendIds) && selectedFriendIds.length === friends.length)) ? 'checked' : '' %>
-                    class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                  <span class="text-sm font-semibold text-gray-700" id="selectAllLabel">
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                  <span class="ml-1 text-sm font-semibold text-gray-700" id="selectAllLabel">
                     <%= (Array.isArray(selectedFriendIds) && selectedFriendIds.length > 0 && selectedFriendIds.length < friends.length) ? 'Select All' : 'All' %>
                   </span>
                 </label>
@@ -90,8 +90,8 @@
                       value="<%= friend.user_id %>"
                       onchange="updateFriendSelection()"
                       <%= (selectedFriendIds === null || (Array.isArray(selectedFriendIds) && selectedFriendIds.includes(friend.user_id))) ? 'checked' : '' %>
-                      class="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                    <span class="text-sm text-gray-700"><%= friend.username %></span>
+                      class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <span class="ml-1 text-sm text-gray-700"><%= friend.username %></span>
                   </label>
                 <% }); %>
               </div>
