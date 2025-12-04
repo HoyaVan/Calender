@@ -246,10 +246,11 @@ async function getSentFriendRequests(userId) {
 }
 
 /**
- * Search users by username or email (excluding current user and existing friends/requests)
+ * Search users by username (excluding only current user)
+ * Returns users with status: 'friend', 'sent', 'received', or 'none'
  * @param {number} userId - Current user ID
  * @param {string} searchTerm - Search term
- * @returns {Promise<Array>} Array of user objects
+ * @returns {Promise<Array>} Array of user objects with request_status field
  */
 async function searchUsers(userId, searchTerm) {
   try {
@@ -260,42 +261,44 @@ async function searchUsers(userId, searchTerm) {
 
     const searchPattern = `%${searchTerm}%`;
     
-    // Get user IDs that are already friends
-    const [friendIds] = await pool.execute(
-      `SELECT CASE 
-         WHEN user1_id = ? THEN user2_id 
-         WHEN user2_id = ? THEN user1_id 
-       END AS friend_id
-       FROM user_friend
-       WHERE user1_id = ? OR user2_id = ?`,
-      [userId, userId, userId, userId]
-    );
-    const friendIdList = friendIds.map(f => f.friend_id).filter(Boolean);
-
-    // Get user IDs that have pending requests (either sent or received)
-    const [requestIds] = await pool.execute(
-      `SELECT DISTINCT CASE 
-         WHEN request_user_id = ? THEN receive_user_id 
-         WHEN receive_user_id = ? THEN request_user_id 
-       END AS request_id
-       FROM user_friend_request
-       WHERE request_user_id = ? OR receive_user_id = ?`,
-      [userId, userId, userId, userId]
-    );
-    const requestIdList = requestIds.map(r => r.request_id).filter(Boolean);
-
-    // Combine excluded IDs
-    const excludedIds = [userId, ...friendIdList, ...requestIdList];
-    const placeholders = excludedIds.map(() => '?').join(',');
-
-    const [users] = await pool.execute(
-      `SELECT user_id, username, email
-       FROM user
-       WHERE (username LIKE ? OR email LIKE ?)
-       AND user_id NOT IN (${placeholders})
-       LIMIT 20`,
-      [searchPattern, searchPattern, ...excludedIds]
-    );
+    // Only exclude current user
+    // Friends, pending requests can all be searched (they'll show with appropriate status)
+    const excludedIds = [userId];
+    
+    // Build the query to include friend status and request status
+    let query = `SELECT u.user_id, u.username, u.email,
+       CASE 
+         WHEN EXISTS (
+           SELECT 1 FROM user_friend uf
+           WHERE (uf.user1_id = ? AND uf.user2_id = u.user_id) OR (uf.user1_id = u.user_id AND uf.user2_id = ?)
+         ) THEN 'friend'
+         WHEN EXISTS (
+           SELECT 1 FROM user_friend_request ufr 
+           WHERE ufr.request_user_id = ? AND ufr.receive_user_id = u.user_id
+         ) THEN 'sent'
+         WHEN EXISTS (
+           SELECT 1 FROM user_friend_request ufr 
+           WHERE ufr.request_user_id = u.user_id AND ufr.receive_user_id = ?
+         ) THEN 'received'
+         ELSE 'none'
+       END AS request_status
+       FROM user u
+       WHERE LOWER(u.username) LIKE LOWER(?)`;
+    
+    const queryParams = [userId, userId, userId, userId, searchPattern];
+    
+    if (excludedIds.length > 0) {
+      const placeholders = excludedIds.map(() => '?').join(',');
+      query += ` AND u.user_id NOT IN (${placeholders})`;
+      queryParams.push(...excludedIds);
+    }
+    
+    query += ` LIMIT 20`;
+    
+    const [users] = await pool.execute(query, queryParams);
+    
+    // Debug logging (can be removed in production)
+    console.log(`Search for "${searchTerm}": Found ${users.length} users, Excluded IDs: [${excludedIds.join(', ')}]`);
 
     return users;
   } catch (error) {
