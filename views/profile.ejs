@@ -8,12 +8,12 @@
   <link rel="stylesheet" type="text/css" href="/output.css"/>
 </head>
 
-<body class="min-h-full bg-gray-50 <%= locals.authenticated ? 'authenticated' : '' %>"
+<body class="min-h-screen bg-gray-50 flex flex-col <%= locals.authenticated ? 'authenticated' : '' %>"
   data-authenticated="<%= locals.authenticated %>">
   <!-- Navigation Header -->
   <%- include('partials/navigation') %>
 
-  <main class="max-w-5xl mx-auto px-4 py-8">
+  <main class="flex-1 max-w-5xl mx-auto px-4 py-8 pb-8">
     <!-- Profile Greeting -->
     <div class="mb-6">
       <h1 class="text-2xl font-semibold">
