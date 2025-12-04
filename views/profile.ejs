@@ -168,12 +168,21 @@
         if (data.success && data.users.length > 0) {
           let html = '<div class="space-y-2">';
           data.users.forEach(user => {
-            html += `
-              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p class="font-medium text-gray-900">${user.username}</p>
-                  <p class="text-sm text-gray-500">${user.email}</p>
-                </div>
+            const requestStatus = user.request_status || 'none';
+            let actionButton = '';
+            
+            if (requestStatus === 'friend') {
+              // User is already a friend
+              actionButton = '<span class="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-md text-sm font-medium">Already Friends</span>';
+            } else if (requestStatus === 'sent') {
+              // User already sent a request to this user
+              actionButton = '<span class="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-md text-sm font-medium">Request Sent</span>';
+            } else if (requestStatus === 'received') {
+              // This user sent a request to current user (should show in pending requests)
+              actionButton = '<span class="px-4 py-2 bg-green-100 text-green-800 rounded-md text-sm font-medium">Check Pending Requests</span>';
+            } else {
+              // No request exists, show send button
+              actionButton = `
                 <form action="/friends/send-request" method="POST" class="inline">
                   <input type="hidden" name="receiveUserId" value="${user.user_id}">
                   <button 
@@ -183,6 +192,16 @@
                     Send Request
                   </button>
                 </form>
+              `;
+            }
+            
+            html += `
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p class="font-medium text-gray-900">${user.username}</p>
+                  <p class="text-sm text-gray-500">${user.email}</p>
+                </div>
+                ${actionButton}
               </div>
             `;
           });
