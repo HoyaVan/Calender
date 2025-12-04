@@ -91,7 +91,7 @@ function createEventCard(event) {
     <div class="flex items-start justify-between gap-3">
       <div class="flex items-center gap-2 flex-1 min-w-0">
         <div class="h-2.5 w-2.5 bg-blue-500 rounded-full animate-pulse flex-shrink-0 mt-0.5"></div>
-        <h4 class="text-base font-bold text-gray-900">
+        <h4 class="text-base font-bold text-gray-900 m-0 leading-tight">
           ${escapeHtml(event.event_name)}
         </h4>
       </div>
@@ -102,7 +102,7 @@ function createEventCard(event) {
       ` : ''}
     </div>
     
-    <div class="space-y-2 pl-4.5">
+    <div class="space-y-2 pl-4.5 mt-2">
       <div class="flex items-center gap-2">
         <span class="text-sm font-semibold text-blue-600 min-w-[45px]">Start:</span>
         <span class="text-sm font-medium text-gray-700">${startDate} at ${startTimeStr}</span>
