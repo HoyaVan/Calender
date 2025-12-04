@@ -348,6 +348,11 @@ router.get("/", async (req, res) => {
       }
     }
 
+    // Fetch invited users for each event
+    for (const event of events) {
+      event.invitedUsers = await db_events.getInvitedUsersForEvent(event.event_id);
+    }
+
     res.render("main", {
       events,
       selectedDate,

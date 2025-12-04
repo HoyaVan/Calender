@@ -150,7 +150,7 @@ async function getEventsByUserIdAndDate(userId, date) {
     const deletedFilter = deletedId ? `AND e.event_security_id != ${deletedId}` : '';
 
     const query = `
-      SELECT 
+      SELECT DISTINCT
         e.event_id,
         e.event_name,
         e.event_start,
@@ -165,7 +165,11 @@ async function getEventsByUserIdAndDate(userId, date) {
       LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
       LEFT JOIN event_color ec ON e.event_id = ec.event_id
       LEFT JOIN deletedEvent de ON e.event_id = de.event_id
-      WHERE e.event_owner_id = ?
+      LEFT JOIN event_user eu ON e.event_id = eu.event_id
+      WHERE (
+        e.event_owner_id = ?
+        OR eu.user_id = ?
+      )
         AND e.event_start < ?
         AND e.event_end > ?
         ${deletedFilter}
@@ -173,7 +177,7 @@ async function getEventsByUserIdAndDate(userId, date) {
       ORDER BY e.event_start ASC
     `;
     
-    const [rows] = await pool.execute(query, [userId, dayEnd, dayStart]);
+    const [rows] = await pool.execute(query, [userId, userId, dayEnd, dayStart]);
     return rows;
   } catch (error) {
     console.error('Error getting events by user ID and date:', error);
@@ -215,7 +219,7 @@ async function getEventsByUserIdAndDateRange(userId, startDate, endDate) {
     const deletedFilter = deletedId ? `AND e.event_security_id != ${deletedId}` : '';
 
     const query = `
-      SELECT 
+      SELECT DISTINCT
         e.event_id,
         e.event_name,
         e.event_start,
@@ -230,7 +234,11 @@ async function getEventsByUserIdAndDateRange(userId, startDate, endDate) {
       LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
       LEFT JOIN event_color ec ON e.event_id = ec.event_id
       LEFT JOIN deletedEvent de ON e.event_id = de.event_id
-      WHERE e.event_owner_id = ?
+      LEFT JOIN event_user eu ON e.event_id = eu.event_id
+      WHERE (
+        e.event_owner_id = ?
+        OR eu.user_id = ?
+      )
         AND e.event_start < ?
         AND e.event_end > ?
         ${deletedFilter}
@@ -238,7 +246,7 @@ async function getEventsByUserIdAndDateRange(userId, startDate, endDate) {
       ORDER BY e.event_start ASC
     `;
     
-    const [rows] = await pool.execute(query, [userId, rangeEndStr, rangeStartStr]);
+    const [rows] = await pool.execute(query, [userId, userId, rangeEndStr, rangeStartStr]);
     return rows;
   } catch (error) {
     console.error('Error getting events by user ID and date range:', error);
@@ -957,6 +965,39 @@ async function getFriendPublicEventsByDateRange(userId, startDate, endDate, sele
   }
 }
 
+/**
+ * Get invited users for an event
+ * @param {number} eventId - The event ID
+ * @returns {Promise<Array>} Array of user objects (user_id, username, email)
+ */
+async function getInvitedUsersForEvent(eventId) {
+  try {
+    const isConnected = await isMySQLConnected();
+    if (!isConnected) {
+      console.error('Cannot get invited users: MySQL is not connected');
+      return [];
+    }
+
+    if (!eventId) {
+      return [];
+    }
+
+    const query = `
+      SELECT u.user_id, u.username, u.email
+      FROM user u
+      INNER JOIN event_user eu ON u.user_id = eu.user_id
+      WHERE eu.event_id = ?
+      ORDER BY u.username ASC
+    `;
+
+    const [rows] = await pool.execute(query, [eventId]);
+    return rows;
+  } catch (error) {
+    console.error('Error getting invited users for event:', error);
+    return [];
+  }
+}
+
 module.exports = {
   getAllEvents,
   getEventsByUserId,
@@ -971,5 +1012,6 @@ module.exports = {
   permanentlyDeleteEvent,
   cleanupOldDeletedEvents,
   getFriendPublicEventsByDate,
-  getFriendPublicEventsByDateRange
+  getFriendPublicEventsByDateRange,
+  getInvitedUsersForEvent
 };
