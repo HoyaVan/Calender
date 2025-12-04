@@ -855,6 +855,9 @@ async function getPublicSecurityId() {
 
 /**
  * Get public events from friends for a specific date
+ * Includes:
+ * 1. Public events created by friends
+ * 2. Public events where friends are invited (even if event creator is not a friend)
  * @param {number} userId - The user ID to get friends for
  * @param {string} date - Date string in YYYY-MM-DD format
  * @param {Array<number>} [selectedFriendIds] - Optional array of friend user IDs to filter by. If empty or not provided, shows all friends' events.
@@ -893,22 +896,39 @@ async function getFriendPublicEventsByDate(userId, date, selectedFriendIds = nul
     // Build friend filter if specific friends are selected
     // null = show all friends, [] = show none, [1,2,3] = show specific friends
     let friendFilter = '';
-    let queryParams = [userId, userId, publicId, dayEnd, dayStart, userId];
+    let friendInvitedFilter = '';
+    
+    // Parameters for first query (events created by friends)
+    let queryParams1 = [userId, userId, publicId, dayEnd, dayStart, userId];
+    
+    // Parameters for second query (events where friends are invited)
+    let queryParams2 = [userId, userId];
     
     if (selectedFriendIds !== null && Array.isArray(selectedFriendIds)) {
       if (selectedFriendIds.length === 0) {
         // Empty array means show no friends - add impossible condition
         friendFilter = `AND 1=0`; // This will return no results
+        friendInvitedFilter = `AND 1=0`; // This will return no results
       } else {
         // Filter by selected friend IDs
         const placeholders = selectedFriendIds.map(() => '?').join(',');
         friendFilter = `AND e.event_owner_id IN (${placeholders})`;
-        queryParams = [...queryParams, ...selectedFriendIds];
+        friendInvitedFilter = `AND eu.user_id IN (${placeholders})`;
+        queryParams1 = [...queryParams1, ...selectedFriendIds];
+        queryParams2 = [...queryParams2, ...selectedFriendIds];
       }
     }
-    // If selectedFriendIds is null, no filter is added (show all friends)
+    
+    // Complete parameters for second query
+    queryParams2 = [...queryParams2, publicId, dayEnd, dayStart, userId, userId, userId];
+    
+    // Combine all parameters in order
+    const queryParams = [...queryParams1, ...queryParams2];
 
     // Get public events from friends where the event overlaps with the selected day
+    // UNION combines:
+    // 1. Public events created by friends
+    // 2. Public events where friends are invited (even if creator is not a friend)
     const query = `
       SELECT DISTINCT
         e.event_id,
@@ -936,7 +956,41 @@ async function getFriendPublicEventsByDate(userId, date, selectedFriendIds = nul
         ${deletedFilter}
         ${friendFilter}
         AND de.event_id IS NULL
-      ORDER BY e.event_start ASC
+      UNION
+      SELECT DISTINCT
+        e.event_id,
+        e.event_name,
+        e.event_start,
+        e.event_end,
+        e.event_owner_id,
+        e.event_security_id,
+        u.username as owner_username,
+        es.security_level,
+        ec.color as event_color
+      FROM event e
+      LEFT JOIN user u ON e.event_owner_id = u.user_id
+      LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
+      LEFT JOIN event_color ec ON e.event_id = ec.event_id
+      LEFT JOIN deletedEvent de ON e.event_id = de.event_id
+      INNER JOIN event_user eu ON e.event_id = eu.event_id
+      INNER JOIN user_friend uf ON (
+        (uf.user1_id = ? AND uf.user2_id = eu.user_id) OR
+        (uf.user2_id = ? AND uf.user1_id = eu.user_id)
+      )
+      WHERE e.event_security_id = ?
+        AND e.event_start < ?
+        AND e.event_end > ?
+        AND e.event_owner_id != ?
+        AND eu.user_id != ?
+        ${deletedFilter}
+        ${friendInvitedFilter}
+        AND de.event_id IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM event_user eu2 
+          WHERE eu2.event_id = e.event_id 
+          AND eu2.user_id = ?
+        )
+      ORDER BY event_start ASC
     `;
     
     const [rows] = await pool.execute(query, queryParams);
@@ -949,6 +1003,9 @@ async function getFriendPublicEventsByDate(userId, date, selectedFriendIds = nul
 
 /**
  * Get public events from friends for a date range
+ * Includes:
+ * 1. Public events created by friends
+ * 2. Public events where friends are invited (even if event creator is not a friend)
  * @param {number} userId - The user ID to get friends for
  * @param {string} startDate - Start date string in YYYY-MM-DD format
  * @param {string} endDate - End date string in YYYY-MM-DD format (exclusive, so use next day)
@@ -987,22 +1044,39 @@ async function getFriendPublicEventsByDateRange(userId, startDate, endDate, sele
     // Build friend filter if specific friends are selected
     // null = show all friends, [] = show none, [1,2,3] = show specific friends
     let friendFilter = '';
-    let queryParams = [userId, userId, publicId, rangeEndStr, rangeStartStr, userId];
+    let friendInvitedFilter = '';
+    
+    // Parameters for first query (events created by friends)
+    let queryParams1 = [userId, userId, publicId, rangeEndStr, rangeStartStr, userId];
+    
+    // Parameters for second query (events where friends are invited)
+    let queryParams2 = [userId, userId];
     
     if (selectedFriendIds !== null && Array.isArray(selectedFriendIds)) {
       if (selectedFriendIds.length === 0) {
         // Empty array means show no friends - add impossible condition
         friendFilter = `AND 1=0`; // This will return no results
+        friendInvitedFilter = `AND 1=0`; // This will return no results
       } else {
         // Filter by selected friend IDs
         const placeholders = selectedFriendIds.map(() => '?').join(',');
         friendFilter = `AND e.event_owner_id IN (${placeholders})`;
-        queryParams = [...queryParams, ...selectedFriendIds];
+        friendInvitedFilter = `AND eu.user_id IN (${placeholders})`;
+        queryParams1 = [...queryParams1, ...selectedFriendIds];
+        queryParams2 = [...queryParams2, ...selectedFriendIds];
       }
     }
-    // If selectedFriendIds is null, no filter is added (show all friends)
+    
+    // Complete parameters for second query
+    queryParams2 = [...queryParams2, publicId, rangeEndStr, rangeStartStr, userId, userId, userId];
+    
+    // Combine all parameters in order
+    const queryParams = [...queryParams1, ...queryParams2];
 
     // Get public events from friends where the event overlaps with the date range
+    // UNION combines:
+    // 1. Public events created by friends
+    // 2. Public events where friends are invited (even if creator is not a friend)
     const query = `
       SELECT DISTINCT
         e.event_id,
@@ -1030,7 +1104,41 @@ async function getFriendPublicEventsByDateRange(userId, startDate, endDate, sele
         ${deletedFilter}
         ${friendFilter}
         AND de.event_id IS NULL
-      ORDER BY e.event_start ASC
+      UNION
+      SELECT DISTINCT
+        e.event_id,
+        e.event_name,
+        e.event_start,
+        e.event_end,
+        e.event_owner_id,
+        e.event_security_id,
+        u.username as owner_username,
+        es.security_level,
+        ec.color as event_color
+      FROM event e
+      LEFT JOIN user u ON e.event_owner_id = u.user_id
+      LEFT JOIN event_security es ON e.event_security_id = es.event_security_id
+      LEFT JOIN event_color ec ON e.event_id = ec.event_id
+      LEFT JOIN deletedEvent de ON e.event_id = de.event_id
+      INNER JOIN event_user eu ON e.event_id = eu.event_id
+      INNER JOIN user_friend uf ON (
+        (uf.user1_id = ? AND uf.user2_id = eu.user_id) OR
+        (uf.user2_id = ? AND uf.user1_id = eu.user_id)
+      )
+      WHERE e.event_security_id = ?
+        AND e.event_start < ?
+        AND e.event_end > ?
+        AND e.event_owner_id != ?
+        AND eu.user_id != ?
+        ${deletedFilter}
+        ${friendInvitedFilter}
+        AND de.event_id IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM event_user eu2 
+          WHERE eu2.event_id = e.event_id 
+          AND eu2.user_id = ?
+        )
+      ORDER BY event_start ASC
     `;
     
     const [rows] = await pool.execute(query, queryParams);
