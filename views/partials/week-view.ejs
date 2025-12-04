@@ -37,7 +37,7 @@
           <div class="p-2 space-y-2 min-h-[200px]">
             <% if (day.events && day.events.length > 0) { %>
               <% day.events.forEach(event => { %>
-                <%- include('event-card-compact', { event: event, opacityClass: '' }) %>
+                <%- include('event-card-compact', { event: event, opacityClass: '', currentUserId: typeof currentUserId !== 'undefined' ? currentUserId : null }) %>
               <% }); %>
             <% } else { %>
               <div class="text-xs text-gray-400 text-center py-4">No events</div>
