@@ -30,8 +30,17 @@
       <span class="text-xs font-normal text-gray-500"> by <%= event.owner_username %></span>
     <% } %>
   </div>
-  <div class="text-xs text-gray-600 truncate">
-    <%= new Date(event.event_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) %>
+  <div class="text-xs text-gray-600">
+    <%
+      const startDate = new Date(event.event_start);
+      const endDate = new Date(event.event_end);
+      const startDateStr = startDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+      const endDateStr = endDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+      const startTimeStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const endTimeStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    %>
+    <div class="truncate"><%= startDateStr %> <%= startTimeStr %> -</div>
+    <div class="truncate"><%= endDateStr %> <%= endTimeStr %></div>
   </div>
   <% if (event.security_level) { %>
     <div class="mt-1">
